@@ -24,16 +24,12 @@ const App: React.FC = () => {
   const [showApiSettingsModal, setShowApiSettingsModal] = useState(false);
   const [tempProvider, setTempProvider] = useState<'gemini' | 'glm' | 'deepseek'>('gemini');
   const [tempApiKey, setTempApiKey] = useState<string>('');
-  const [tempGlmUrl, setTempGlmUrl] = useState<string>('');
-  const [tempDeepseekUrl, setTempDeepseekUrl] = useState<string>('');
   const { config, saveConfig } = useApiKeys();
 
   // 初始化临时设置
   React.useEffect(() => {
     setTempProvider(config.provider);
     setTempApiKey(config.apiKey);
-    setTempGlmUrl(config.glmUrl || '');
-    setTempDeepseekUrl(config.deepseekUrl || '');
   }, [config, showApiSettingsModal]);
 
   const rollTrigram = useCallback(() => {
@@ -117,10 +113,7 @@ const App: React.FC = () => {
     });
 
     const customPrompt = consultationQuestion ? `用户的咨询问题：${consultationQuestion}` : '';
-    const result = await interpretHexagram(mainHexName!, changeHexName, linesDesc, config.provider, customPrompt, config.apiKey, {
-      glmUrl: config.glmUrl,
-      deepseekUrl: config.deepseekUrl
-    });
+    const result = await interpretHexagram(mainHexName!, changeHexName, linesDesc, config.provider, customPrompt, config.apiKey);
     
     setState(prev => ({ 
       ...prev, 
@@ -396,36 +389,8 @@ const App: React.FC = () => {
                 />
               </div>
 
-              {/* GLM URL Input (shown if GLM is selected) */}
-              {tempProvider === 'glm' && (
-                <div>
-                  <label className="text-sm font-bold text-stone-700 block mb-2">GLM API URL</label>
-                  <input 
-                    type="text" 
-                    value={tempGlmUrl} 
-                    onChange={(e) => setTempGlmUrl(e.target.value)}
-                    placeholder="https://api.example.com/v1/generate"
-                    className="w-full p-3 rounded border border-stone-300 text-sm focus:outline-none focus:ring-2 focus:ring-red-800"
-                  />
-                </div>
-              )}
-
-              {/* Deepseek URL Input (shown if Deepseek is selected) */}
-              {tempProvider === 'deepseek' && (
-                <div>
-                  <label className="text-sm font-bold text-stone-700 block mb-2">Deepseek API URL</label>
-                  <input 
-                    type="text" 
-                    value={tempDeepseekUrl} 
-                    onChange={(e) => setTempDeepseekUrl(e.target.value)}
-                    placeholder="https://api.deepseek.com/v1/generate"
-                    className="w-full p-3 rounded border border-stone-300 text-sm focus:outline-none focus:ring-2 focus:ring-red-800"
-                  />
-                </div>
-              )}
-
               <p className="text-xs text-stone-500 bg-stone-50 p-3 rounded">
-                💡 所有配置保存在浏览器本地存储中。无需配置 .env 文件。
+                💡 所有配置保存在浏览器本地存储中。API 端点已内置，无需手动配置。
               </p>
 
               {/* Save Button */}
@@ -433,9 +398,7 @@ const App: React.FC = () => {
                 onClick={() => {
                   saveConfig({
                     provider: tempProvider,
-                    apiKey: tempApiKey,
-                    glmUrl: tempGlmUrl,
-                    deepseekUrl: tempDeepseekUrl
+                    apiKey: tempApiKey
                   });
                   setShowApiSettingsModal(false);
                 }}

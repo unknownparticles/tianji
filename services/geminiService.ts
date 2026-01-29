@@ -1,6 +1,12 @@
 
 import { GoogleGenAI } from "@google/genai";
 
+// 内置的 API 端点
+const API_URLS = {
+  glm: 'https://open.bigmodel.cn/api/paas/v4/chat/completions',
+  deepseek: 'https://api.deepseek.com/v1/chat/completions'
+};
+
 const readEnv = (key: string) => {
   const metaEnv = import.meta.env as Record<string, string | undefined>;
   if (metaEnv && key in metaEnv) return metaEnv[key];
@@ -28,7 +34,6 @@ const getGeminiClient = () => {
  * provider: 'gemini' | 'glm' | 'deepseek' (defaults to 'gemini')
  * customPrompt: optional extra instructions from frontend
  * apiKey: API key for the selected provider (required)
- * apiUrls: optional URLs for GLM and Deepseek { glmUrl?, deepseekUrl? }
  */
 export async function interpretHexagram(
   mainHex: string,
@@ -36,8 +41,7 @@ export async function interpretHexagram(
   lines: string[],
   provider: string = 'gemini',
   customPrompt?: string,
-  apiKey?: string,
-  apiUrls?: { glmUrl?: string; deepseekUrl?: string }
+  apiKey?: string
 ) {
   const basePrompt = `
     你是一位精通《周易》的占卜大师。现在请为用户解读卦象。
@@ -72,17 +76,13 @@ export async function interpretHexagram(
       return response.text;
     }
 
-    // GLM provider - URL from frontend
+    // GLM provider - URL built-in
     if (provider === 'glm') {
-      const glmUrl = apiUrls?.glmUrl;
-      if (!glmUrl) {
-        return "GLM API URL 未配置。请在设置中输入 GLM API URL。参考文档：https://platform.deepseek.com (或其他 GLM 提供商)";
-      }
       if (!apiKey) {
         return "未配置 GLM API Key，请在设置中输入 API Key。";
       }
 
-      const resp = await fetch(glmUrl, {
+      const resp = await fetch(API_URLS.glm, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -95,17 +95,13 @@ export async function interpretHexagram(
       return (data.text || data.output || data.result || JSON.stringify(data));
     }
 
-    // Deepseek provider - URL from frontend
+    // Deepseek provider - URL built-in
     if (provider === 'deepseek') {
-      const deepseekUrl = apiUrls?.deepseekUrl;
-      if (!deepseekUrl) {
-        return "Deepseek API URL 未配置。请在设置中输入 Deepseek API URL。参考文档：https://platform.deepseek.com (或其他提供商)";
-      }
       if (!apiKey) {
         return "未配置 Deepseek API Key，请在设置中输入 API Key。";
       }
 
-      const resp = await fetch(deepseekUrl, {
+      const resp = await fetch(API_URLS.deepseek, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
