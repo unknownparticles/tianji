@@ -1,7 +1,27 @@
 
 import { GoogleGenAI } from "@google/genai";
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || "" });
+const readEnv = (key: string) => {
+  const metaEnv = import.meta.env as Record<string, string | undefined>;
+  if (metaEnv && key in metaEnv) return metaEnv[key];
+  if (typeof process !== "undefined" && process.env) return process.env[key];
+  return undefined;
+};
+
+const GEMINI_API_KEY =
+  readEnv("VITE_GEMINI_API_KEY") ||
+  readEnv("VITE_API_KEY") ||
+  readEnv("GEMINI_API_KEY") ||
+  readEnv("API_KEY");
+
+let geminiClient: GoogleGenAI | null = null;
+const getGeminiClient = () => {
+  if (!GEMINI_API_KEY) return null;
+  if (!geminiClient) {
+    geminiClient = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
+  }
+  return geminiClient;
+};
 
 /**
  * Interpret hexagram using different AI providers.
@@ -34,8 +54,12 @@ export async function interpretHexagram(
 
   try {
     if (provider === 'gemini') {
+      const client = getGeminiClient();
+      if (!client) {
+        return "未配置 Gemini API Key，请先在环境变量中设置 GEMINI_API_KEY 或 VITE_GEMINI_API_KEY。";
+      }
       const model = "gemini-3-pro-preview";
-      const response = await ai.models.generateContent({
+      const response = await client.models.generateContent({
         model: model,
         contents: finalPrompt,
         config: { thinkingConfig: { thinkingBudget: 4000 } }
@@ -45,8 +69,8 @@ export async function interpretHexagram(
 
     // Generic HTTP-based provider support (GLM, Deepseek). Requires env vars for endpoints and keys.
     if (provider === 'glm') {
-      const url = process.env.GLM_API_URL;
-      const key = process.env.GLM_API_KEY;
+      const url = readEnv("GLM_API_URL") || readEnv("VITE_GLM_API_URL");
+      const key = readEnv("GLM_API_KEY") || readEnv("VITE_GLM_API_KEY");
       if (!url) throw new Error('GLM API URL not configured (GLM_API_URL)');
 
       const resp = await fetch(url, {
@@ -64,8 +88,8 @@ export async function interpretHexagram(
     }
 
     if (provider === 'deepseek') {
-      const url = process.env.DEEPSEEK_API_URL;
-      const key = process.env.DEEPSEEK_API_KEY;
+      const url = readEnv("DEEPSEEK_API_URL") || readEnv("VITE_DEEPSEEK_API_URL");
+      const key = readEnv("DEEPSEEK_API_KEY") || readEnv("VITE_DEEPSEEK_API_KEY");
       if (!url) throw new Error('Deepseek API URL not configured (DEEPSEEK_API_URL)');
 
       const resp = await fetch(url, {

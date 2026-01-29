@@ -1,7 +1,3 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
-
 # 天机卦 — 传统周易卜卦
 
 本项目为一个简洁的传统周易占卜前端应用，包含起卦、展示六爻与调用 AI 解卦的基础功能。
@@ -58,6 +54,17 @@ DEEPSEEK_API_KEY=ds-xxxx
 
 - 将 AI 请求移至后端以保护密钥。
 - 根据目标 provider 调整请求格式与速率限制处理。
+
+## 部署说明
+
+若部署到 GitHub Pages 等非根目录环境（例如 `https://username.github.io/repo/`），需在 `vite.config.js` 中配置 `base` 路径，否则会出现白屏：
+
+```js
+export default defineConfig({
+  base: '/tianji/', // 替换为你的仓库名称
+  // ...
+})
+```
 
 ## 贡献与联系
 
