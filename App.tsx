@@ -20,10 +20,17 @@ const App: React.FC = () => {
   const [showHistory, setShowHistory] = useState(false);
   const [history, setHistory] = useState<{name: string, date: string}[]>([]);
   const [currentBatchCoins, setCurrentBatchCoins] = useState<CoinSide[]>([]);
-  const [provider, setProvider] = useState<string>('gemini');
-  const [customPrompt, setCustomPrompt] = useState<string>('');
-  const [showApiKeyModal, setShowApiKeyModal] = useState(false);
-  const { keys, saveKeys } = useApiKeys();
+  const [consultationQuestion, setConsultationQuestion] = useState<string>('');
+  const [showApiSettingsModal, setShowApiSettingsModal] = useState(false);
+  const [tempProvider, setTempProvider] = useState<'gemini' | 'glm' | 'deepseek'>('gemini');
+  const [tempApiKey, setTempApiKey] = useState<string>('');
+  const { config, saveConfig } = useApiKeys();
+
+  // 初始化临时设置
+  React.useEffect(() => {
+    setTempProvider(config.provider);
+    setTempApiKey(config.apiKey);
+  }, [config, showApiSettingsModal]);
 
   const rollTrigram = useCallback(() => {
     if (state.lines.length >= 6 || state.isRolling) return;
@@ -92,6 +99,11 @@ const App: React.FC = () => {
 
   const handleInterpretation = async () => {
     if (state.lines.length < 6) return;
+    if (!config.apiKey) {
+      alert('请先在设置中配置 API Key');
+      setShowApiSettingsModal(true);
+      return;
+    }
     setState(prev => ({ ...prev, isLoadingAI: true }));
     
     const linesDesc = state.lines.map((l, i) => {
@@ -100,7 +112,8 @@ const App: React.FC = () => {
         return `第${i+1}爻: ${type}爻 (${status})`;
     });
 
-    const result = await interpretHexagram(mainHexName!, changeHexName, linesDesc, provider, customPrompt, keys);
+    const customPrompt = consultationQuestion ? `用户的咨询问题：${consultationQuestion}` : '';
+    const result = await interpretHexagram(mainHexName!, changeHexName, linesDesc, config.provider, customPrompt, config.apiKey);
     
     setState(prev => ({ 
       ...prev, 
@@ -116,9 +129,13 @@ const App: React.FC = () => {
       {/* Header */}
       <header className="text-center mb-10 relative">
         <button 
-          onClick={() => setShowApiKeyModal(true)}
+          onClick={() => {
+            setTempProvider(config.provider);
+            setTempApiKey(config.apiKey);
+            setShowApiSettingsModal(true);
+          }}
           className="absolute right-0 top-0 p-2 text-stone-500 hover:text-red-800 transition-colors"
-          title="API 密钥设置"
+          title="API 设置"
         >
           <Settings className="w-5 h-5" />
         </button>
@@ -212,6 +229,19 @@ const App: React.FC = () => {
                         {state.lines.some(l => l.isChanging) ? '内含动爻 • 变卦已现' : '六爻安静 • 本卦主事'}
                     </p>
                 </div>
+
+                {/* Consultation Question Input */}
+                <div className="p-4 bg-stone-50 rounded-lg border border-stone-200">
+                  <label className="text-sm font-bold text-stone-700 block mb-2">咨询问题（可选）</label>
+                  <textarea 
+                    value={consultationQuestion} 
+                    onChange={(e) => setConsultationQuestion(e.target.value)}
+                    placeholder="例如：最近工作会不会有机遇？请输入你想咨询的问题..."
+                    className="w-full p-3 rounded border border-stone-300 text-sm focus:outline-none focus:ring-2 focus:ring-red-800"
+                    rows={3}
+                  />
+                </div>
+
                 {!state.interpretation && (
                   <button
                     onClick={handleInterpretation}
@@ -324,14 +354,14 @@ const App: React.FC = () => {
         </div>
       )}
 
-      {/* API Key Configuration Modal */}
-      {showApiKeyModal && (
+      {/* API Settings Modal */}
+      {showApiSettingsModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6">
             <div className="flex justify-between items-center mb-6">
-              <h2 className="text-2xl font-bold text-red-900">API 密钥配置</h2>
+              <h2 className="text-2xl font-bold text-red-900">API 设置</h2>
               <button 
-                onClick={() => setShowApiKeyModal(false)}
+                onClick={() => setShowApiSettingsModal(false)}
                 className="text-stone-400 hover:text-stone-600"
               >
                 <X className="w-6 h-6" />
@@ -339,71 +369,54 @@ const App: React.FC = () => {
             </div>
 
             <div className="space-y-4">
-              {/* Gemini */}
+              {/* Provider Selection */}
               <div>
-                <label className="text-sm font-bold text-stone-700">Gemini API Key</label>
+                <label className="text-sm font-bold text-stone-700 block mb-2">选择 AI Provider</label>
+                <div className="space-y-2">
+                  {(['gemini', 'glm', 'deepseek'] as const).map((p) => (
+                    <label key={p} className="flex items-center gap-2 cursor-pointer hover:bg-stone-50 p-2 rounded">
+                      <input 
+                        type="radio" 
+                        name="provider" 
+                        value={p} 
+                        checked={tempProvider === p}
+                        onChange={() => setTempProvider(p)}
+                        className="cursor-pointer"
+                      />
+                      <span className="capitalize font-medium text-stone-700">{p}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              {/* API Key Input */}
+              <div>
+                <label className="text-sm font-bold text-stone-700 block mb-2">API Key</label>
                 <input 
                   type="password" 
-                  value={keys.gemini} 
-                  onChange={(e) => saveKeys({ ...keys, gemini: e.target.value })}
-                  placeholder="sk-..."
-                  className="w-full mt-1 p-2 border rounded text-sm"
+                  value={tempApiKey} 
+                  onChange={(e) => setTempApiKey(e.target.value)}
+                  placeholder="输入你的 API Key..."
+                  className="w-full p-3 rounded border border-stone-300 text-sm focus:outline-none focus:ring-2 focus:ring-red-800"
                 />
               </div>
 
-              {/* GLM */}
-              <div>
-                <label className="text-sm font-bold text-stone-700">GLM API URL</label>
-                <input 
-                  type="text" 
-                  value={keys.glmUrl} 
-                  onChange={(e) => saveKeys({ ...keys, glmUrl: e.target.value })}
-                  placeholder="https://api.example.com/v1/generate"
-                  className="w-full mt-1 p-2 border rounded text-sm"
-                />
-              </div>
-              <div>
-                <label className="text-sm font-bold text-stone-700">GLM API Key (可选)</label>
-                <input 
-                  type="password" 
-                  value={keys.glm} 
-                  onChange={(e) => saveKeys({ ...keys, glm: e.target.value })}
-                  placeholder="glm-..."
-                  className="w-full mt-1 p-2 border rounded text-sm"
-                />
-              </div>
-
-              {/* Deepseek */}
-              <div>
-                <label className="text-sm font-bold text-stone-700">Deepseek API URL</label>
-                <input 
-                  type="text" 
-                  value={keys.deepseekUrl} 
-                  onChange={(e) => saveKeys({ ...keys, deepseekUrl: e.target.value })}
-                  placeholder="https://api.deepseek.com/v1/generate"
-                  className="w-full mt-1 p-2 border rounded text-sm"
-                />
-              </div>
-              <div>
-                <label className="text-sm font-bold text-stone-700">Deepseek API Key (可选)</label>
-                <input 
-                  type="password" 
-                  value={keys.deepseek} 
-                  onChange={(e) => saveKeys({ ...keys, deepseek: e.target.value })}
-                  placeholder="ds-..."
-                  className="w-full mt-1 p-2 border rounded text-sm"
-                />
-              </div>
-
-              <p className="text-xs text-stone-500 mt-4 bg-amber-50 p-3 rounded">
-                注：API 密钥保存在浏览器本地存储中。为安全起见，建议在生产环境中通过后端代理调用 API。
+              <p className="text-xs text-stone-500 bg-stone-50 p-3 rounded">
+                💡 API 密钥保存在浏览器本地存储中。GLM 和 Deepseek 的 API 端点需在 .env 文件中配置。
               </p>
 
+              {/* Save Button */}
               <button 
-                onClick={() => setShowApiKeyModal(false)}
-                className="w-full mt-6 py-2 px-4 bg-red-900 text-white hover:bg-red-800 rounded-lg transition-all font-bold"
+                onClick={() => {
+                  saveConfig({
+                    provider: tempProvider,
+                    apiKey: tempApiKey
+                  });
+                  setShowApiSettingsModal(false);
+                }}
+                className="w-full py-3 px-4 bg-red-900 text-white hover:bg-red-800 rounded-lg transition-all font-bold"
               >
-                保存并关闭
+                确定
               </button>
             </div>
           </div>

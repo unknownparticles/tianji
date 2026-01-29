@@ -1,22 +1,16 @@
 import { useState, useEffect } from 'react';
 
-export interface ApiKeys {
-  gemini: string;
-  glm: string;
-  glmUrl: string;
-  deepseek: string;
-  deepseekUrl: string;
+export interface ApiConfig {
+  provider: 'gemini' | 'glm' | 'deepseek';
+  apiKey: string;
 }
 
-const STORAGE_KEY = 'tianji_api_keys';
+const STORAGE_KEY = 'tianji_api_config';
 
 export function useApiKeys() {
-  const [keys, setKeys] = useState<ApiKeys>({
-    gemini: '',
-    glm: '',
-    glmUrl: '',
-    deepseek: '',
-    deepseekUrl: ''
+  const [config, setConfig] = useState<ApiConfig>({
+    provider: 'gemini',
+    apiKey: ''
   });
 
   // 从 localStorage 加载
@@ -24,18 +18,18 @@ export function useApiKeys() {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) {
       try {
-        setKeys(JSON.parse(saved));
+        setConfig(JSON.parse(saved));
       } catch (e) {
-        console.error('Failed to load API keys:', e);
+        console.error('Failed to load API config:', e);
       }
     }
   }, []);
 
   // 保存到 localStorage
-  const saveKeys = (newKeys: ApiKeys) => {
-    setKeys(newKeys);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(newKeys));
+  const saveConfig = (newConfig: ApiConfig) => {
+    setConfig(newConfig);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(newConfig));
   };
 
-  return { keys, saveKeys };
+  return { config, setConfig, saveConfig };
 }

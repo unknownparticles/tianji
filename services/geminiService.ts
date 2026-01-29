@@ -27,7 +27,7 @@ const getGeminiClient = () => {
  * Interpret hexagram using different AI providers.
  * provider: 'gemini' | 'glm' | 'deepseek' (defaults to 'gemini')
  * customPrompt: optional extra instructions from frontend
- * apiKeys: object containing API keys for different providers { gemini, glm, deepseek, glmUrl, deepseekUrl }
+ * apiKey: API key for the selected provider (required)
  */
 export async function interpretHexagram(
   mainHex: string,
@@ -35,7 +35,7 @@ export async function interpretHexagram(
   lines: string[],
   provider: string = 'gemini',
   customPrompt?: string,
-  apiKeys?: { gemini?: string; glm?: string; glmUrl?: string; deepseek?: string; deepseekUrl?: string }
+  apiKey?: string
 ) {
   const basePrompt = `
     你是一位精通《周易》的占卜大师。现在请为用户解读卦象。
@@ -56,9 +56,9 @@ export async function interpretHexagram(
 
   try {
     if (provider === 'gemini') {
-      const key = apiKeys?.gemini || GEMINI_API_KEY;
+      const key = apiKey || GEMINI_API_KEY;
       if (!key) {
-        return "未配置 Gemini API Key，请先在界面上输入 API Key 或设置环境变量。";
+        return "未配置 Gemini API Key，请在设置中输入 API Key。";
       }
       const client = new GoogleGenAI({ apiKey: key });
       const model = "gemini-3-pro-preview";
@@ -70,17 +70,21 @@ export async function interpretHexagram(
       return response.text;
     }
 
-    // Generic HTTP-based provider support (GLM, Deepseek).
+    // GLM provider - URL from environment variable
     if (provider === 'glm') {
-      const url = apiKeys?.glmUrl || readEnv("GLM_API_URL") || readEnv("VITE_GLM_API_URL");
-      const key = apiKeys?.glm || readEnv("GLM_API_KEY") || readEnv("VITE_GLM_API_KEY");
-      if (!url) throw new Error('GLM API URL not configured，请在界面上输入或设置环境变量');
+      const glmUrl = readEnv("VITE_GLM_API_URL") || readEnv("GLM_API_URL");
+      if (!glmUrl) {
+        return "GLM API URL 未配置。请在 .env 文件中设置 VITE_GLM_API_URL。参考：https://platform.deepseek.com (或其他 GLM 提供商文档)";
+      }
+      if (!apiKey) {
+        return "未配置 GLM API Key，请在设置中输入 API Key。";
+      }
 
-      const resp = await fetch(url, {
+      const resp = await fetch(glmUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...(key ? { 'Authorization': `Bearer ${key}` } : {})
+          'Authorization': `Bearer ${apiKey}`
         },
         body: JSON.stringify({ prompt: finalPrompt })
       });
@@ -89,16 +93,21 @@ export async function interpretHexagram(
       return (data.text || data.output || data.result || JSON.stringify(data));
     }
 
+    // Deepseek provider - URL from environment variable
     if (provider === 'deepseek') {
-      const url = apiKeys?.deepseekUrl || readEnv("DEEPSEEK_API_URL") || readEnv("VITE_DEEPSEEK_API_URL");
-      const key = apiKeys?.deepseek || readEnv("DEEPSEEK_API_KEY") || readEnv("VITE_DEEPSEEK_API_KEY");
-      if (!url) throw new Error('Deepseek API URL not configured，请在界面上输入或设置环境变量');
+      const deepseekUrl = readEnv("VITE_DEEPSEEK_API_URL") || readEnv("DEEPSEEK_API_URL");
+      if (!deepseekUrl) {
+        return "Deepseek API URL 未配置。请在 .env 文件中设置 VITE_DEEPSEEK_API_URL。参考：https://platform.deepseek.com (或其他 Deepseek 提供商文档)";
+      }
+      if (!apiKey) {
+        return "未配置 Deepseek API Key，请在设置中输入 API Key。";
+      }
 
-      const resp = await fetch(url, {
+      const resp = await fetch(deepseekUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...(key ? { 'Authorization': `Bearer ${key}` } : {})
+          'Authorization': `Bearer ${apiKey}`
         },
         body: JSON.stringify({ prompt: finalPrompt })
       });
