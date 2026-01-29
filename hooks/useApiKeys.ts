@@ -3,6 +3,8 @@ import { useState, useEffect } from 'react';
 export interface ApiConfig {
   provider: 'gemini' | 'glm' | 'deepseek';
   apiKey: string;
+  glmUrl?: string;
+  deepseekUrl?: string;
 }
 
 const STORAGE_KEY = 'tianji_api_config';
@@ -10,7 +12,9 @@ const STORAGE_KEY = 'tianji_api_config';
 export function useApiKeys() {
   const [config, setConfig] = useState<ApiConfig>({
     provider: 'gemini',
-    apiKey: ''
+    apiKey: '',
+    glmUrl: '',
+    deepseekUrl: ''
   });
 
   // 从 localStorage 加载

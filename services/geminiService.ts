@@ -28,6 +28,7 @@ const getGeminiClient = () => {
  * provider: 'gemini' | 'glm' | 'deepseek' (defaults to 'gemini')
  * customPrompt: optional extra instructions from frontend
  * apiKey: API key for the selected provider (required)
+ * apiUrls: optional URLs for GLM and Deepseek { glmUrl?, deepseekUrl? }
  */
 export async function interpretHexagram(
   mainHex: string,
@@ -35,7 +36,8 @@ export async function interpretHexagram(
   lines: string[],
   provider: string = 'gemini',
   customPrompt?: string,
-  apiKey?: string
+  apiKey?: string,
+  apiUrls?: { glmUrl?: string; deepseekUrl?: string }
 ) {
   const basePrompt = `
     你是一位精通《周易》的占卜大师。现在请为用户解读卦象。
@@ -70,11 +72,11 @@ export async function interpretHexagram(
       return response.text;
     }
 
-    // GLM provider - URL from environment variable
+    // GLM provider - URL from frontend
     if (provider === 'glm') {
-      const glmUrl = readEnv("VITE_GLM_API_URL") || readEnv("GLM_API_URL");
+      const glmUrl = apiUrls?.glmUrl;
       if (!glmUrl) {
-        return "GLM API URL 未配置。请在 .env 文件中设置 VITE_GLM_API_URL。参考：https://platform.deepseek.com (或其他 GLM 提供商文档)";
+        return "GLM API URL 未配置。请在设置中输入 GLM API URL。参考文档：https://platform.deepseek.com (或其他 GLM 提供商)";
       }
       if (!apiKey) {
         return "未配置 GLM API Key，请在设置中输入 API Key。";
@@ -93,11 +95,11 @@ export async function interpretHexagram(
       return (data.text || data.output || data.result || JSON.stringify(data));
     }
 
-    // Deepseek provider - URL from environment variable
+    // Deepseek provider - URL from frontend
     if (provider === 'deepseek') {
-      const deepseekUrl = readEnv("VITE_DEEPSEEK_API_URL") || readEnv("DEEPSEEK_API_URL");
+      const deepseekUrl = apiUrls?.deepseekUrl;
       if (!deepseekUrl) {
-        return "Deepseek API URL 未配置。请在 .env 文件中设置 VITE_DEEPSEEK_API_URL。参考：https://platform.deepseek.com (或其他 Deepseek 提供商文档)";
+        return "Deepseek API URL 未配置。请在设置中输入 Deepseek API URL。参考文档：https://platform.deepseek.com (或其他提供商)";
       }
       if (!apiKey) {
         return "未配置 Deepseek API Key，请在设置中输入 API Key。";
