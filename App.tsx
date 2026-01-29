@@ -265,18 +265,6 @@ const App: React.FC = () => {
         {/* Right: Hexagram Sidebar */}
         <div className="lg:col-span-5 flex flex-col gap-6">
           <div className="bg-white rounded-2xl p-6 shadow-xl border border-stone-200">
-            <div className="mb-4">
-              <label className="text-sm text-stone-500">AI Provider</label>
-              <div className="mt-2 flex gap-2">
-                <select value={provider} onChange={e => setProvider(e.target.value)} className="w-full p-2 rounded border">
-                  <option value="gemini">Gemini (默认)</option>
-                  <option value="glm">GLM</option>
-                  <option value="deepseek">Deepseek</option>
-                </select>
-              </div>
-              <label className="text-sm text-stone-500 mt-3 block">附加说明（可选，前台输入）</label>
-              <textarea value={customPrompt} onChange={e => setCustomPrompt(e.target.value)} placeholder="例如：请用更偏实用的口吻，重点提示事业建议。" className="w-full mt-2 p-2 rounded border h-20"></textarea>
-            </div>
             <h3 className="text-center font-bold text-stone-700 mb-6 border-b pb-2 flex items-center justify-center gap-2">
                 卦象集成
             </h3>
