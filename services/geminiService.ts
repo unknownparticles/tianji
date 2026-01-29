@@ -4,7 +4,7 @@ import { GoogleGenAI } from "@google/genai";
 // 内置的 API 端点
 const API_URLS = {
   glm: 'https://open.bigmodel.cn/api/paas/v4/chat/completions',
-  deepseek: 'https://api.deepseek.com/v1/chat/completions'
+    deepseek: 'https://api.deepseek.com/chat/completions'
 };
 
 const readEnv = (key: string) => {
@@ -88,11 +88,15 @@ export async function interpretHexagram(
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${apiKey}`
         },
-        body: JSON.stringify({ prompt: finalPrompt })
+          body: JSON.stringify({
+            model: 'glm-4-flash',
+            messages: [{ role: 'user', content: finalPrompt }],
+            stream: false
+          })
       });
       if (!resp.ok) throw new Error(`GLM request failed: ${resp.status}`);
       const data = await resp.json();
-      return (data.text || data.output || data.result || JSON.stringify(data));
+        return data.choices?.[0]?.message?.content || data.text || data.output || data.result || JSON.stringify(data);
     }
 
     // Deepseek provider - URL built-in
@@ -107,11 +111,15 @@ export async function interpretHexagram(
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${apiKey}`
         },
-        body: JSON.stringify({ prompt: finalPrompt })
+          body: JSON.stringify({
+            model: 'deepseek-chat',
+            messages: [{ role: 'user', content: finalPrompt }],
+            stream: false
+          })
       });
       if (!resp.ok) throw new Error(`Deepseek request failed: ${resp.status}`);
       const data = await resp.json();
-      return (data.text || data.output || data.result || JSON.stringify(data));
+        return data.choices?.[0]?.message?.content || data.text || data.output || data.result || JSON.stringify(data);
     }
 
     throw new Error(`Unknown provider: ${provider}`);
