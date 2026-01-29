@@ -27,13 +27,15 @@ const getGeminiClient = () => {
  * Interpret hexagram using different AI providers.
  * provider: 'gemini' | 'glm' | 'deepseek' (defaults to 'gemini')
  * customPrompt: optional extra instructions from frontend
+ * apiKeys: object containing API keys for different providers { gemini, glm, deepseek, glmUrl, deepseekUrl }
  */
 export async function interpretHexagram(
   mainHex: string,
   changingHex: string | null,
   lines: string[],
   provider: string = 'gemini',
-  customPrompt?: string
+  customPrompt?: string,
+  apiKeys?: { gemini?: string; glm?: string; glmUrl?: string; deepseek?: string; deepseekUrl?: string }
 ) {
   const basePrompt = `
     你是一位精通《周易》的占卜大师。现在请为用户解读卦象。
@@ -54,10 +56,11 @@ export async function interpretHexagram(
 
   try {
     if (provider === 'gemini') {
-      const client = getGeminiClient();
-      if (!client) {
-        return "未配置 Gemini API Key，请先在环境变量中设置 GEMINI_API_KEY 或 VITE_GEMINI_API_KEY。";
+      const key = apiKeys?.gemini || GEMINI_API_KEY;
+      if (!key) {
+        return "未配置 Gemini API Key，请先在界面上输入 API Key 或设置环境变量。";
       }
+      const client = new GoogleGenAI({ apiKey: key });
       const model = "gemini-3-pro-preview";
       const response = await client.models.generateContent({
         model: model,
@@ -67,11 +70,11 @@ export async function interpretHexagram(
       return response.text;
     }
 
-    // Generic HTTP-based provider support (GLM, Deepseek). Requires env vars for endpoints and keys.
+    // Generic HTTP-based provider support (GLM, Deepseek).
     if (provider === 'glm') {
-      const url = readEnv("GLM_API_URL") || readEnv("VITE_GLM_API_URL");
-      const key = readEnv("GLM_API_KEY") || readEnv("VITE_GLM_API_KEY");
-      if (!url) throw new Error('GLM API URL not configured (GLM_API_URL)');
+      const url = apiKeys?.glmUrl || readEnv("GLM_API_URL") || readEnv("VITE_GLM_API_URL");
+      const key = apiKeys?.glm || readEnv("GLM_API_KEY") || readEnv("VITE_GLM_API_KEY");
+      if (!url) throw new Error('GLM API URL not configured，请在界面上输入或设置环境变量');
 
       const resp = await fetch(url, {
         method: 'POST',
@@ -83,14 +86,13 @@ export async function interpretHexagram(
       });
       if (!resp.ok) throw new Error(`GLM request failed: ${resp.status}`);
       const data = await resp.json();
-      // Attempt to extract text from common response shapes
       return (data.text || data.output || data.result || JSON.stringify(data));
     }
 
     if (provider === 'deepseek') {
-      const url = readEnv("DEEPSEEK_API_URL") || readEnv("VITE_DEEPSEEK_API_URL");
-      const key = readEnv("DEEPSEEK_API_KEY") || readEnv("VITE_DEEPSEEK_API_KEY");
-      if (!url) throw new Error('Deepseek API URL not configured (DEEPSEEK_API_URL)');
+      const url = apiKeys?.deepseekUrl || readEnv("DEEPSEEK_API_URL") || readEnv("VITE_DEEPSEEK_API_URL");
+      const key = apiKeys?.deepseek || readEnv("DEEPSEEK_API_KEY") || readEnv("VITE_DEEPSEEK_API_KEY");
+      if (!url) throw new Error('Deepseek API URL not configured，请在界面上输入或设置环境变量');
 
       const resp = await fetch(url, {
         method: 'POST',
