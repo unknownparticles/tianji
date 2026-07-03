@@ -57,7 +57,10 @@ const CinematicTaiji: React.FC<CinematicTaijiProps> = ({ onComplete, onFetch }) 
       tl.to('.bagua-wrap', { scale: 1.5, opacity: 0, duration: 2, ease: 'power2.in' }, 14);
 
       // 最终文字
-      tl.fromTo('.final-text', { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 1.5, ease: 'power2.out' }, 15);
+      tl.fromTo('.final-text', { opacity: 1, y: 0 }, { opacity: 0, y: -20, duration: 1, ease: 'power2.in' }, 15);
+
+      // overlay 消失
+      tl.to('.overlay', { opacity: 0, duration: 1, ease: 'power2.in' }, 16);
     };
 
     init();
@@ -66,7 +69,7 @@ const CinematicTaiji: React.FC<CinematicTaijiProps> = ({ onComplete, onFetch }) 
   return (
     <div
       ref={containerRef}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/20"
+      className="overlay fixed inset-0 z-50 flex items-center justify-center bg-black/20"
     >
       <style>{`
         @keyframes spin {
