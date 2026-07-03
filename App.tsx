@@ -6,7 +6,6 @@ import { interpretHexagram } from './services/geminiService';
 import { useApiKeys } from './hooks/useApiKeys';
 import Coin from './components/Coin';
 import HexagramDisplay from './components/HexagramDisplay';
-import TaijiReveal from './components/TaijiReveal';
 import CinematicTaiji from './components/CinematicTaiji';
 import { Sparkles, RefreshCw, ScrollText, CircleAlert, History, HelpCircle, Settings, X, Play } from 'lucide-react';
 
@@ -26,18 +25,8 @@ const App: React.FC = () => {
   const [showApiSettingsModal, setShowApiSettingsModal] = useState(false);
   const [tempProvider, setTempProvider] = useState<'gemini' | 'glm' | 'deepseek'>('gemini');
   const [tempApiKey, setTempApiKey] = useState<string>('');
-  const [showTaijiReveal, setShowTaijiReveal] = useState(false);
   const [showCinematic, setShowCinematic] = useState(false);
   const { config, saveConfig } = useApiKeys();
-
-  // 检测卦象完成，触发太极显现
-  const prevLinesLengthRef = useRef(0);
-  useEffect(() => {
-    if (prevLinesLengthRef.current < 6 && state.lines.length === 6) {
-      setShowTaijiReveal(true);
-    }
-    prevLinesLengthRef.current = state.lines.length;
-  }, [state.lines.length]);
 
   // 初始化临时设置
   React.useEffect(() => {
@@ -449,11 +438,6 @@ const App: React.FC = () => {
             </div>
           </div>
         </div>
-      )}
-
-      {/* 太极显现动画 */}
-      {showTaijiReveal && (
-        <TaijiReveal onComplete={() => setShowTaijiReveal(false)} />
       )}
 
       {/* 电影级开场动画 */}
