@@ -124,26 +124,31 @@ const App: React.FC = () => {
       setShowApiSettingsModal(true);
       return;
     }
+    // 播放太极动画，动画结束后获取解读
+    setShowCinematic(true);
+  };
+
+  // 动画结束后获取解读
+  const fetchInterpretation = async () => {
     setState(prev => ({ ...prev, isLoadingAI: true }));
-    
+
+
     const linesDesc = state.lines.map((l, i) => {
-        const type = l.type === 'yang' ? '阳' : '阴';
+        const type = l.type == 'yang' ? '阳' : '阴';
         const status = l.isChanging ? '动爻' : '静爻';
         return `第${i+1}爻: ${type}爻 (${status})`;
     });
 
     const customPrompt = consultationQuestion ? `用户的咨询问题：${consultationQuestion}` : '';
     const result = await interpretHexagram(mainHexName!, changeHexName, linesDesc, config.provider, customPrompt, config.apiKey);
-    
-    setState(prev => ({ 
-      ...prev, 
-      interpretation: result || "解读失败", 
-      isLoadingAI: false 
-    }));
 
+    setState(prev => ({
+      ...prev,
+      interpretation: result || "解读失败",
+      isLoadingAI: false
+    }));
     setHistory(prev => [{ name: mainHexName!, date: new Date().toLocaleString() }, ...prev.slice(0, 9)]);
   };
-
   return (
     <div className="max-w-4xl mx-auto px-4 py-8">
       {/* Header */}
@@ -453,7 +458,7 @@ const App: React.FC = () => {
 
       {/* 电影级开场动画 */}
       {showCinematic && (
-        <CinematicTaiji onComplete={() => setShowCinematic(false)} />
+        <CinematicTaiji onComplete={() => setShowCinematic(false)} onFetch={fetchInterpretation} />
       )}
     </div>
   );
