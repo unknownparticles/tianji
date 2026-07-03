@@ -58,8 +58,14 @@ const CinematicTaiji: React.FC<CinematicTaijiProps> = ({ onComplete, onFetch }) 
       // 八卦旋转
       tl.to('.bagua-rotate', { rotation: 360, duration: 8, ease: 'power1.inOut' }, 9);
 
+      // 八卦放大隐藏
+      tl.to('.bagua-svg', { scale: 1.5, opacity: 0, duration: 2, ease: 'power2.in' }, 15);
+
+      // 最终文字
+      tl.fromTo('.final-text', { opacity: 0 }, { opacity: 1, duration: 1, ease: 'power2.out' }, 16);
+
       // 冲击波
-      tl.fromTo('.shockwave', { scale: 0, opacity: 1 }, { scale: 8, opacity: 0, duration: 2, ease: 'power2.out' }, 15);
+      tl.fromTo('.shockwave', { scale: 0, opacity: 1 }, { scale: 8, opacity: 0, duration: 2, ease: 'power2.out' }, 16);
     };
 
     init();
