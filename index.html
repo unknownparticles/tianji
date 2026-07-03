@@ -32,45 +32,41 @@
             animation: shake 0.5s infinite;
         }
 
-        /* 硬币抛起翻滚动画 */
-        @keyframes coinToss {
+        /* 硬币翻转动画 - 参考 Ayokanmi-Adejola/Flip-The-Coin */
+        @keyframes coinFlip {
             0% {
-                transform: translateY(0) rotateX(0deg);
+                transform: translateY(0) rotateY(0deg);
             }
-            20% {
-                transform: translateY(-60px) rotateX(180deg);
+            50% {
+                transform: translateY(-80px) rotateY(540deg);
             }
-            40% {
-                transform: translateY(-100px) rotateX(360deg);
+            70% {
+                transform: translateY(-100px) rotateY(720deg);
             }
-            60% {
-                transform: translateY(-120px) rotateX(540deg);
+            85% {
+                transform: translateY(-40px) rotateY(900deg);
             }
-            80% {
-                transform: translateY(-80px) rotateX(720deg);
-            }
-            95% {
-                transform: translateY(0) rotateX(900deg);
+            92% {
+                transform: translateY(-20px) rotateY(990deg);
             }
             100% {
-                transform: translateY(0) rotateX(900deg);
+                transform: translateY(0) rotateY(1080deg);
             }
         }
-        .animate-coin-toss {
-            animation: coinToss 1.2s cubic-bezier(0.4, 0, 0.6, 1) forwards;
+        .animate-coin-flip {
+            animation: coinFlip 1.2s cubic-bezier(.68,-0.55,.27,1.55) forwards;
         }
 
         /* 硬币落地弹跳 */
         @keyframes coinLand {
             0% { transform: translateY(0) scale(1); }
-            20% { transform: translateY(-15px) scale(1.05); }
-            40% { transform: translateY(0) scale(0.98); }
-            60% { transform: translateY(-6px) scale(1.02); }
-            80% { transform: translateY(0) scale(1); }
+            30% { transform: translateY(-12px) scale(1.05); }
+            50% { transform: translateY(0) scale(0.97); }
+            70% { transform: translateY(-5px) scale(1.02); }
             100% { transform: translateY(0) scale(1); }
         }
         .animate-coin-land {
-            animation: coinLand 0.4s ease-out;
+            animation: coinLand 0.3s ease-out;
         }
     </style>
 <script type="importmap">
