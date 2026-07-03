@@ -7,7 +7,8 @@ import { useApiKeys } from './hooks/useApiKeys';
 import Coin from './components/Coin';
 import HexagramDisplay from './components/HexagramDisplay';
 import TaijiReveal from './components/TaijiReveal';
-import { Sparkles, RefreshCw, ScrollText, CircleAlert, History, HelpCircle, Settings, X } from 'lucide-react';
+import CinematicTaiji from './components/CinematicTaiji';
+import { Sparkles, RefreshCw, ScrollText, CircleAlert, History, HelpCircle, Settings, X, Play } from 'lucide-react';
 
 const App: React.FC = () => {
   const [state, setState] = useState<DivinationState>({
@@ -26,13 +27,13 @@ const App: React.FC = () => {
   const [tempProvider, setTempProvider] = useState<'gemini' | 'glm' | 'deepseek'>('gemini');
   const [tempApiKey, setTempApiKey] = useState<string>('');
   const [showTaijiReveal, setShowTaijiReveal] = useState(false);
+  const [showCinematic, setShowCinematic] = useState(false);
   const { config, saveConfig } = useApiKeys();
 
   // 检测卦象完成，触发太极显现
   const prevLinesLengthRef = useRef(0);
   useEffect(() => {
     if (prevLinesLengthRef.current < 6 && state.lines.length === 6) {
-      // 卦象刚刚完成
       setShowTaijiReveal(true);
     }
     prevLinesLengthRef.current = state.lines.length;
@@ -43,6 +44,11 @@ const App: React.FC = () => {
     setTempProvider(config.provider);
     setTempApiKey(config.apiKey);
   }, [config, showApiSettingsModal]);
+
+  // 开始起卦，播放开场动画
+  const startDivination = useCallback(() => {
+    setShowCinematic(true);
+  }, []);
 
   const rollTrigram = useCallback(() => {
     if (state.lines.length >= 6 || state.isRolling) return;
@@ -214,7 +220,19 @@ const App: React.FC = () => {
           </div>
 
           <div className="flex flex-col items-center gap-4">
-            {state.lines.length < 6 ? (
+            {/* 起始按钮 - 播放开场动画 */}
+            {state.lines.length === 0 && !state.isRolling && (
+              <button
+                onClick={startDivination}
+                className="w-full md:w-72 py-4 px-8 bg-gradient-to-r from-amber-800 to-amber-700 hover:from-amber-700 hover:to-amber-600 text-white rounded-full font-bold text-lg shadow-lg transform active:scale-95 transition-all flex items-center justify-center gap-2"
+              >
+                <Play className="w-5 h-5" />
+                开始起卦
+              </button>
+            )}
+
+            {/* 掷硬币按钮 */}
+            {state.lines.length > 0 && state.lines.length < 6 && (
               <button
                 onClick={rollTrigram}
                 disabled={state.isRolling}
@@ -231,7 +249,10 @@ const App: React.FC = () => {
                   </>
                 )}
               </button>
-            ) : (
+            )}
+
+            {/* 卦象完成 - 显示解读 */}
+            {state.lines.length === 6 && (
               <div className="w-full space-y-4">
                 <div className="p-5 bg-red-50 border border-red-200 rounded-xl text-center shadow-inner">
                     <p className="text-red-900 font-bold text-2xl mb-1">
@@ -247,8 +268,8 @@ const App: React.FC = () => {
                 {/* Consultation Question Input */}
                 <div className="p-4 bg-stone-50 rounded-lg border border-stone-200">
                   <label className="text-sm font-bold text-stone-700 block mb-2">咨询问题（可选）</label>
-                  <textarea 
-                    value={consultationQuestion} 
+                  <textarea
+                    value={consultationQuestion}
                     onChange={(e) => setConsultationQuestion(e.target.value)}
                     placeholder="例如：最近工作会不会有机遇？请输入你想咨询的问题..."
                     className="w-full p-3 rounded border border-stone-300 text-sm focus:outline-none focus:ring-2 focus:ring-red-800"
@@ -268,7 +289,7 @@ const App: React.FC = () => {
                 )}
               </div>
             )}
-            
+
             <p className="text-xs text-stone-400 flex items-center gap-1 mt-2">
                 <HelpCircle className="w-3 h-3" />
                 注：一次掷三枚，每枚对应一爻。正面为阳，反面为阴。掷两次成全卦。
@@ -428,6 +449,11 @@ const App: React.FC = () => {
       {/* 太极显现动画 */}
       {showTaijiReveal && (
         <TaijiReveal onComplete={() => setShowTaijiReveal(false)} />
+      )}
+
+      {/* 电影级开场动画 */}
+      {showCinematic && (
+        <CinematicTaiji onComplete={() => setShowCinematic(false)} />
       )}
     </div>
   );
