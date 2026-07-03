@@ -68,8 +68,7 @@ const CinematicTaiji: React.FC<CinematicTaijiProps> = ({ onComplete, onFetch }) 
   return (
     <div
       ref={containerRef}
-      className="fixed inset-0 z-50 flex items-center justify-center"
-      style={{ backgroundColor: '#050505' }}
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/20"
     >
       {/* 中心光点 */}
       <div className="center-dot absolute w-2 h-2 rounded-full bg-white/30 blur-sm opacity-0" />
