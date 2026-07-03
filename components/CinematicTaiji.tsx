@@ -39,33 +39,24 @@ const CinematicTaiji: React.FC<CinematicTaijiProps> = ({ onComplete, onFetch }) 
       // 混沌 - 中心光点
       tl.fromTo('.center-dot', { opacity: 0, scale: 0 }, { opacity: 1, scale: 1, duration: 2, ease: 'power2.inOut' }, 0);
 
-      // 太极显现
+      // 太极显现并开始旋转
       tl.fromTo('.taiji-svg', { opacity: 0, scale: 0.5 }, { opacity: 1, scale: 1, duration: 3, ease: 'power3.out' }, 1);
+      tl.to('.taiji-rotate', { rotation: 720, duration: 6, ease: 'linear', repeat: -1 }, 2);
 
-      // 太极旋转
-      tl.to('.taiji-rotate', { rotation: 360, duration: 3, ease: 'power1.inOut' }, 2);
+      // 太极旋转加速
+      tl.to('.taiji-rotate', { rotation: 2160, duration: 3, ease: 'power2.in' }, 5);
 
-      // 加速旋转
-      tl.to('.taiji-rotate', { rotation: 1080, duration: 2, ease: 'power2.in' }, 5);
+      // 太极淡化，八卦显现（同时旋转）
+      tl.to('.taiji-svg', { opacity: 0, scale: 1.2, duration: 2, ease: 'power2.in' }, 7);
+      tl.fromTo('.bagua-svg', { opacity: 0, scale: 0.8 }, { opacity: 1, scale: 1, duration: 2, ease: 'power3.out' }, 7);
+      tl.to('.bagua-rotate', { rotation: 360, duration: 4, ease: 'linear', repeat: -1 }, 7);
 
-      // 突然停止
-      tl.to('.taiji-rotate', { rotation: 1080, duration: 0.3, ease: 'power4.out' }, 7);
-
-      // 太极消失，八卦显现
-      tl.to('.taiji-svg', { opacity: 0, scale: 1.5, duration: 1, ease: 'power2.in' }, 7.5);
-      tl.fromTo('.bagua-svg', { opacity: 0, scale: 0.5 }, { opacity: 1, scale: 1, duration: 2, ease: 'power3.out' }, 8);
-
-      // 八卦旋转
-      tl.to('.bagua-rotate', { rotation: 360, duration: 8, ease: 'power1.inOut' }, 9);
-
-      // 八卦放大隐藏
-      tl.to('.bagua-svg', { scale: 1.5, opacity: 0, duration: 2, ease: 'power2.in' }, 15);
+      // 八卦继续旋转并放大隐藏
+      tl.to('.bagua-rotate', { rotation: 720, duration: 4, ease: 'power1.inOut' }, 11);
+      tl.to('.bagua-svg', { scale: 1.5, opacity: 0, duration: 2, ease: 'power2.in' }, 14);
 
       // 最终文字
-      tl.fromTo('.final-text', { opacity: 0 }, { opacity: 1, duration: 1, ease: 'power2.out' }, 16);
-
-      // 冲击波
-      tl.fromTo('.shockwave', { scale: 0, opacity: 1 }, { scale: 8, opacity: 0, duration: 2, ease: 'power2.out' }, 16);
+      tl.fromTo('.final-text', { opacity: 0 }, { opacity: 1, duration: 1, ease: 'power2.out' }, 15);
     };
 
     init();
