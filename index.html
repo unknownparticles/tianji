@@ -31,15 +31,46 @@
         .shake {
             animation: shake 0.5s infinite;
         }
-        @keyframes bounce-land {
-            0% { transform: translateY(0); }
-            30% { transform: translateY(-20px); }
-            50% { transform: translateY(-8px); }
-            70% { transform: translateY(-12px); }
-            100% { transform: translateY(0); }
+
+        /* 硬币抛起翻滚动画 */
+        @keyframes coinToss {
+            0% {
+                transform: translateY(0) rotateX(0deg);
+            }
+            20% {
+                transform: translateY(-60px) rotateX(180deg);
+            }
+            40% {
+                transform: translateY(-100px) rotateX(360deg);
+            }
+            60% {
+                transform: translateY(-120px) rotateX(540deg);
+            }
+            80% {
+                transform: translateY(-80px) rotateX(720deg);
+            }
+            95% {
+                transform: translateY(0) rotateX(900deg);
+            }
+            100% {
+                transform: translateY(0) rotateX(900deg);
+            }
         }
-        .bounce-land {
-            animation: bounce-land 0.4s ease-out;
+        .animate-coin-toss {
+            animation: coinToss 1.2s cubic-bezier(0.4, 0, 0.6, 1) forwards;
+        }
+
+        /* 硬币落地弹跳 */
+        @keyframes coinLand {
+            0% { transform: translateY(0) scale(1); }
+            20% { transform: translateY(-15px) scale(1.05); }
+            40% { transform: translateY(0) scale(0.98); }
+            60% { transform: translateY(-6px) scale(1.02); }
+            80% { transform: translateY(0) scale(1); }
+            100% { transform: translateY(0) scale(1); }
+        }
+        .animate-coin-land {
+            animation: coinLand 0.4s ease-out;
         }
     </style>
 <script type="importmap">

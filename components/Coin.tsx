@@ -9,98 +9,130 @@ interface CoinProps {
 }
 
 const Coin: React.FC<CoinProps> = ({ side, isRolling, onAnimationComplete }) => {
-  const [animationPhase, setAnimationPhase] = useState<'idle' | 'up' | 'flip' | 'down' | 'land'>('idle');
+  const [displaySide, setDisplaySide] = useState<'heads' | 'tails' | null>(null);
+  const animationRef = useRef<number | null>(null);
+  const startTimeRef = useRef<number>(0);
   const prevRollingRef = useRef(isRolling);
 
+  // 硬币翻滚动画
   useEffect(() => {
-    // 开始滚动
-    if (!prevRollingRef.current && isRolling) {
-      setAnimationPhase('up');
+    if (isRolling) {
+      startTimeRef.current = Date.now();
+      setDisplaySide(null);
+
+      const animate = () => {
+        const elapsed = Date.now() - startTimeRef.current;
+        // 1.2秒的翻滚动画，360度翻转
+        const progress = Math.min(elapsed / 1200, 1);
+        // 使用 easeOut 效果让动画更自然
+        const easeOut = 1 - Math.pow(1 - progress, 3);
+
+        // 每隔一段时间切换显示的正反面
+        const flipCycle = (elapsed % 300) < 150;
+        setDisplaySide(flipCycle ? 'heads' : 'tails');
+
+        if (progress < 1) {
+          animationRef.current = requestAnimationFrame(animate);
+        }
+      };
+
+      animationRef.current = requestAnimationFrame(animate);
+    } else {
+      if (animationRef.current) {
+        cancelAnimationFrame(animationRef.current);
+        animationRef.current = null;
+      }
+      if (side) {
+        setDisplaySide(side);
+      }
     }
-    // 滚动结束，落地
-    if (prevRollingRef.current && !isRolling && side) {
-      setAnimationPhase('land');
-      setTimeout(() => {
-        setAnimationPhase('idle');
-        onAnimationComplete?.();
+
+    return () => {
+      if (animationRef.current) {
+        cancelAnimationFrame(animationRef.current);
+      }
+    };
+  }, [isRolling, side]);
+
+  // 动画完成回调
+  useEffect(() => {
+    if (prevRollingRef.current && !isRolling && side && onAnimationComplete) {
+      const timer = setTimeout(() => {
+        onAnimationComplete();
       }, 400);
+      return () => clearTimeout(timer);
     }
     prevRollingRef.current = isRolling;
   }, [isRolling, side, onAnimationComplete]);
 
-  // 翻转动画循环
-  useEffect(() => {
-    if (!isRolling) return;
-
-    let frame = 0;
-    const maxFrames = 30;
-    const interval = setInterval(() => {
-      frame++;
-      if (frame >= maxFrames) {
-        frame = 0;
-      }
-      // 在 up 和 down 之间切换 flip 状态
-      if (animationPhase === 'up' || animationPhase === 'down') {
-        setAnimationPhase(frame % 2 === 0 ? 'up' : 'flip');
-      }
-    }, 80);
-
-    return () => clearInterval(interval);
-  }, [isRolling, animationPhase]);
+  const currentSide = isRolling ? (displaySide || 'heads') : side;
 
   return (
     <div className="relative w-20 h-32 flex flex-col items-center">
+      {/* 硬币容器 */}
       <div
         className={`
-          relative w-16 h-16 md:w-20 md:h-20 rounded-full
-          border-4 border-amber-600
-          bg-gradient-to-br from-amber-300 via-amber-400 to-amber-500
-          flex items-center justify-center shadow-xl
+          relative w-16 h-16 md:w-20 md:h-20
           transition-all duration-200
-          ${animationPhase === 'up' ? '-translate-y-16' : ''}
-          ${animationPhase === 'flip' ? '-translate-y-8 rotate-y-180' : ''}
-          ${animationPhase === 'down' ? '-translate-y-4' : ''}
-          ${animationPhase === 'land' ? 'translate-y-0 bounce-land' : ''}
-          ${!isRolling && side ? 'shadow-lg' : ''}
+          ${isRolling ? 'animate-coin-toss' : ''}
         `}
-        style={{
-          transformStyle: 'preserve-3d',
-          perspective: '500px',
-        }}
       >
-        {/* 金色边框光晕 */}
-        <div className="absolute inset-0 rounded-full border-2 border-amber-300 opacity-50"></div>
-
-        {/* 古代铜钱方孔 */}
-        <div className="w-5 h-5 md:w-6 md:h-6 bg-stone-100 border-2 border-amber-700 rounded-sm transform rotate-45"></div>
-
-        {/* 装饰字符 */}
-        <div className="absolute inset-0 flex flex-col items-center justify-between py-1 text-[8px] md:text-[10px] font-bold text-amber-900 pointer-events-none">
-          <span className="opacity-70 tracking-widest">{side === 'heads' ? '乾' : '坤'}</span>
-          <div className="flex w-full justify-between px-2">
-            <span className="opacity-70">元</span>
-            <span className="opacity-70">亨</span>
-          </div>
-          <span className="opacity-70 tracking-widest">{side === 'heads' ? '隆' : '通'}</span>
-        </div>
-      </div>
-
-      {/* 正面/背面指示 */}
-      {side && !isRolling && (
+        {/* 硬币本体 */}
         <div
           className={`
-            absolute -top-6 px-2 py-0.5 rounded text-xs font-bold
-            ${side === 'heads' ? 'bg-red-800 text-amber-100' : 'bg-stone-700 text-stone-200'}
+            w-full h-full rounded-full
+            border-4 border-amber-600
+            bg-gradient-to-br from-amber-300 via-amber-400 to-amber-500
+            flex items-center justify-center shadow-xl
+            relative overflow-hidden
+            ${isRolling ? '' : 'animate-coin-land'}
           `}
         >
-          {side === 'heads' ? '☰ 阳' : '☷ 阴'}
+          {/* 金属光泽效果 */}
+          <div className="absolute inset-0 bg-gradient-to-br from-white/30 via-transparent to-black/10 rounded-full"></div>
+
+          {/* 古代铜钱方孔 */}
+          <div className="w-5 h-5 md:w-6 md:h-6 bg-stone-100 border-2 border-amber-700 rounded-sm transform rotate-45 shadow-inner"></div>
+
+          {/* 装饰字符 */}
+          <div className="absolute inset-0 flex flex-col items-center justify-between py-1 text-[8px] md:text-[10px] font-bold text-amber-900 pointer-events-none">
+            <span className="opacity-80 tracking-widest">
+              {currentSide === 'heads' ? '乾' : '坤'}
+            </span>
+            <div className="flex w-full justify-between px-2">
+              <span className="opacity-80">元</span>
+              <span className="opacity-80">亨</span>
+            </div>
+            <span className="opacity-80 tracking-widest">
+              {currentSide === 'heads' ? '隆' : '通'}
+            </span>
+          </div>
+
+          {/* 边缘装饰 */}
+          <div className="absolute inset-0 rounded-full border-2 border-amber-300/50"></div>
         </div>
-      )}
+
+        {/* 正面/背面指示标签 */}
+        {currentSide && !isRolling && (
+          <div
+            className={`
+              absolute -top-6 left-1/2 -translate-x-1/2
+              px-2 py-0.5 rounded text-xs font-bold whitespace-nowrap
+              ${currentSide === 'heads'
+                ? 'bg-red-800 text-amber-100'
+                : 'bg-stone-700 text-stone-200'
+              }
+            `}
+          >
+            {currentSide === 'heads' ? '☰ 阳' : '☷ 阴'}
+          </div>
+        )}
+      </div>
 
       {/* 底部标签 */}
-      {side && !isRolling && (
-        <div className="absolute -bottom-6 text-xs font-bold text-amber-800 whitespace-nowrap">
-          {side === 'heads' ? '三正面 = 阳爻' : '二正面 = 阴爻'}
+      {currentSide && !isRolling && (
+        <div className="absolute -bottom-5 text-xs font-bold text-amber-800 whitespace-nowrap">
+          {currentSide === 'heads' ? '三正面 = 阳爻' : '二正面 = 阴爻'}
         </div>
       )}
     </div>
