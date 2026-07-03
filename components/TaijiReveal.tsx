@@ -5,28 +5,52 @@ interface TaijiRevealProps {
   onComplete: () => void;
 }
 
+// 八卦名称和位置（在外圈）
+const BAGUA = [
+  { name: '乾', angle: 0 },
+  { name: '兑', angle: 45 },
+  { name: '离', angle: 90 },
+  { name: '震', angle: 135 },
+  { name: '巽', angle: 180 },
+  { name: '坎', angle: 225 },
+  { name: '艮', angle: 270 },
+  { name: '坤', angle: 315 },
+];
+
 const TaijiReveal: React.FC<TaijiRevealProps> = ({ onComplete }) => {
   const [phase, setPhase] = useState<'taiji' | 'bagua' | 'expand' | 'fade'>('taiji');
+  const [rotation, setRotation] = useState(0);
+
+  // 太极持续旋转
+  useEffect(() => {
+    if (phase === 'taiji' || phase === 'bagua') {
+      const interval = setInterval(() => {
+        setRotation(prev => (prev + 2) % 360);
+      }, 50);
+      return () => clearInterval(interval);
+    }
+  }, [phase]);
 
   useEffect(() => {
     const timers: NodeJS.Timeout[] = [];
 
-    timers.push(setTimeout(() => setPhase('bagua'), 1500));
-    timers.push(setTimeout(() => setPhase('expand'), 2500));
-    timers.push(setTimeout(() => setPhase('fade'), 3500));
-    timers.push(setTimeout(() => onComplete(), 4500));
+    timers.push(setTimeout(() => setPhase('bagua'), 2000));
+    timers.push(setTimeout(() => setPhase('expand'), 3000));
+    timers.push(setTimeout(() => setPhase('fade'), 4000));
+    timers.push(setTimeout(() => onComplete(), 5000));
 
     return () => timers.forEach(clearTimeout);
   }, [onComplete]);
 
   return (
     <div className="absolute inset-0 flex items-center justify-center bg-[#fffdf5]/98 z-50 overflow-hidden">
+      {/* 背景光晕 */}
+      <div className="absolute inset-0 bg-gradient-radial from-amber-200/20 via-transparent to-transparent" />
+
       {/* 太极八卦主体 */}
       <div
         className={`
           relative
-          ${phase === 'taiji' ? 'scale-100 opacity-100' : ''}
-          ${phase === 'bagua' ? 'scale-100 opacity-100' : ''}
           ${phase === 'expand' ? 'scale-125 opacity-90' : ''}
           ${phase === 'fade' ? 'scale-150 opacity-0' : ''}
         `}
@@ -34,87 +58,87 @@ const TaijiReveal: React.FC<TaijiRevealProps> = ({ onComplete }) => {
           transition: 'all 1s ease-out',
         }}
       >
-        {/* 太极图 - 使用 CSS 实现 */}
+        {/* 太极图 - 使用 EthanDeL 的 CSS 方法 */}
         <div
-          className={`
-            relative w-40 h-40 md:w-52 md:h-52
-            rounded-full
-            ${phase === 'taiji' || phase === 'bagua' ? 'animate-taiji-spin' : ''}
-          `}
+          className="relative"
           style={{
-            background: `
-              radial-gradient(circle at 50% 50%,
-                #1c1917 0%, #1c1917 50%,
-                #fafaf9 50%, #fafaf9 100%
-              )
-            `,
-            boxShadow: '0 0 60px rgba(251, 191, 36, 0.4)',
+            width: '200px',
+            height: '200px',
+            borderRadius: '50%',
+            background: 'linear-gradient(to right, #fff 50%, #000 50%)',
+            animation: phase !== 'fade' ? 'taijiSpin 4s linear infinite' : 'none',
+            boxShadow: '0 0 40px rgba(255, 255, 255, 0.3)',
           }}
         >
-          {/* 阴阳鱼眼 */}
-          {/* 上半白（阳） */}
+          {/* 左半圆（白） */}
           <div
-            className="absolute top-0 left-0 w-full h-1/2 rounded-t-full overflow-hidden"
-            style={{ background: '#fafaf9' }}
+            style={{
+              position: 'absolute',
+              width: '100px',
+              height: '200px',
+              left: '0',
+              overflow: 'hidden',
+              borderRadius: '100px 0 0 100px',
+              background: 'linear-gradient(to right, #fff 50%, #000 50%)',
+            }}
           >
+            {/* 白色鱼眼 */}
             <div
-              className="absolute bottom-0 left-1/2 -translate-x-1/2 w-10 h-10 md:w-14 md:h-14 rounded-full"
-              style={{ background: '#1c1917' }}
-            >
-              <div
-                className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-3 h-3 md:w-4 md:h-4 rounded-full"
-                style={{ background: '#fafaf9' }}
-              />
-            </div>
+              style={{
+                position: 'absolute',
+                width: '40px',
+                height: '40px',
+                borderRadius: '50%',
+                background: '#fff',
+                top: '30px',
+                left: '30px',
+              }}
+            />
           </div>
 
-          {/* 下半黑（阴） */}
+          {/* 右半圆（黑） */}
           <div
-            className="absolute bottom-0 left-0 w-full h-1/2 rounded-b-full overflow-hidden"
-            style={{ background: '#1c1917' }}
+            style={{
+              position: 'absolute',
+              width: '100px',
+              height: '200px',
+              right: '0',
+              overflow: 'hidden',
+              borderRadius: '0 100px 100px 0',
+              background: 'linear-gradient(to left, #000 50%, #fff 50%)',
+            }}
           >
+            {/* 黑色鱼眼 */}
             <div
-              className="absolute top-0 left-1/2 -translate-x-1/2 w-10 h-10 md:w-14 md:h-14 rounded-full"
-              style={{ background: '#fafaf9' }}
-            >
-              <div
-                className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-3 h-3 md:w-4 md:h-4 rounded-full"
-                style={{ background: '#1c1917' }}
-              />
-            </div>
+              style={{
+                position: 'absolute',
+                width: '40px',
+                height: '40px',
+                borderRadius: '50%',
+                background: '#000',
+                bottom: '30px',
+                right: '30px',
+              }}
+            />
           </div>
-
-          {/* 边缘 */}
-          <div className="absolute inset-0 rounded-full border-4 border-red-900/30" />
         </div>
 
-        {/* 八卦 - 8个方位 */}
+        {/* 八卦在外圈 - 围绕太极 */}
         {(phase === 'bagua' || phase === 'expand' || phase === 'fade') && (
           <div className="absolute inset-0">
-            {/* 八卦位置：上右下左 + 四角 */}
-            {[
-              { name: '乾', angle: 0, x: '50%', y: '-10%' },
-              { name: '兑', angle: 45, x: '95%', y: '20%' },
-              { name: '离', angle: 90, x: '110%', y: '50%' },
-              { name: '震', angle: 135, x: '95%', y: '80%' },
-              { name: '巽', angle: 180, x: '50%', y: '110%' },
-              { name: '坎', angle: 225, x: '5%', y: '80%' },
-              { name: '艮', angle: 270, x: '-10%', y: '50%' },
-              { name: '坤', angle: 315, x: '5%', y: '20%' },
-            ].map((bagua) => (
+            {BAGUA.map((bagua) => (
               <div
                 key={bagua.name}
                 className={`
-                  absolute text-2xl md:text-3xl
+                  absolute text-3xl font-bold
                   transition-all duration-500
                   ${phase === 'bagua' ? 'opacity-100 scale-100' : 'opacity-0 scale-75'}
                 `}
                 style={{
-                  left: bagua.x,
-                  top: bagua.y,
-                  transform: 'translate(-50%, -50%)',
-                  animationDelay: `${bagua.angle / 45 * 0.1}s`,
-                  color: '#991b1b',
+                  left: '50%',
+                  top: '50%',
+                  transform: `rotate(${bagua.angle}deg) translateY(-130px) rotate(-${bagua.angle}deg)`,
+                  color: bagua.angle === 0 || bagua.angle === 180 ? '#dc2626' : '#991b1b',
                 }}
               >
                 {bagua.name}
@@ -122,30 +146,41 @@ const TaijiReveal: React.FC<TaijiRevealProps> = ({ onComplete }) => {
             ))}
           </div>
         )}
+
+        {/* 外圈装饰 */}
+        <div
+          className="absolute inset-0 rounded-full border-2 border-red-900/20"
+          style={{
+            width: '280px',
+            height: '280px',
+            left: '50%',
+            top: '50%',
+            transform: 'translate(-50%, -50%)',
+          }}
+        />
       </div>
 
-      {/* 光晕效果 */}
-      <div
-        className={`
-          absolute w-64 h-64 rounded-full
-          bg-gradient-radial from-amber-400/30 to-transparent
-          blur-3xl
-          ${phase === 'expand' ? 'scale-150 opacity-50' : ''}
-          ${phase === 'fade' ? 'scale-200 opacity-0' : ''}
-        `}
-        style={{ transition: 'all 1s ease-out' }}
-      />
+      {/* 扩散光效 */}
+      {(phase === 'expand' || phase === 'fade') && (
+        <div
+          className="absolute w-80 h-80 rounded-full bg-gradient-radial from-amber-400/20 to-transparent blur-3xl"
+          style={{
+            animation: 'pulse 2s ease-in-out infinite',
+          }}
+        />
+      )}
 
       <style>{`
         @keyframes taijiSpin {
           from { transform: rotate(0deg); }
           to { transform: rotate(360deg); }
         }
-        .animate-taiji-spin {
-          animation: taijiSpin 4s linear infinite;
+        @keyframes pulse {
+          0%, 100% { transform: scale(1); opacity: 0.5; }
+          50% { transform: scale(1.2); opacity: 0.3; }
         }
         .bg-gradient-radial {
-          background: radial-gradient(circle, rgba(251, 191, 36, 0.3) 0%, transparent 70%);
+          background: radial-gradient(circle, rgba(251, 191, 36, 0.2) 0%, transparent 70%);
         }
       `}</style>
     </div>

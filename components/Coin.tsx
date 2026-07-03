@@ -1,5 +1,5 @@
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { CoinSide } from '../types';
 
 interface CoinProps {
@@ -11,18 +11,53 @@ interface CoinProps {
 const Coin: React.FC<CoinProps> = ({ side, isRolling, onAnimationComplete }) => {
   const [displaySide, setDisplaySide] = useState<'heads' | 'tails'>('heads');
   const [isFlipping, setIsFlipping] = useState(false);
+  const [gravityEnabled, setGravityEnabled] = useState(false);
+  const [gravityX, setGravityX] = useState(0);
+  const [gravityY, setGravityY] = useState(0);
   const prevRollingRef = useRef(isRolling);
+
+  // 重力感应
+  useEffect(() => {
+    if (!gravityEnabled) return;
+
+    const handleOrientation = (event: DeviceOrientationEvent) => {
+      const x = event.beta || 0;  // 前后倾斜
+      const y = event.gamma || 0; // 左右倾斜
+      setGravityX(Math.max(-45, Math.min(45, y)));
+      setGravityY(Math.max(-45, Math.min(45, x)));
+    };
+
+    window.addEventListener('deviceorientation', handleOrientation);
+    return () => window.removeEventListener('deviceorientation', handleOrientation);
+  }, [gravityEnabled]);
+
+  // 尝试启用重力感应
+  const enableGravity = useCallback(() => {
+    if (typeof DeviceOrientationEvent !== 'undefined' &&
+        typeof (DeviceOrientationEvent as any).requestPermission === 'function') {
+      (DeviceOrientationEvent as any).requestPermission()
+        .then((permissionState: string) => {
+          if (permissionState === 'granted') {
+            setGravityEnabled(true);
+          }
+        })
+        .catch(console.error);
+    } else {
+      setGravityEnabled(true);
+    }
+  }, []);
 
   useEffect(() => {
     if (isRolling && !prevRollingRef.current) {
-      // 开始翻转
       setIsFlipping(true);
       setDisplaySide('heads');
+      // 尝试启用重力感应
+      enableGravity();
     }
     prevRollingRef.current = isRolling;
-  }, [isRolling]);
+  }, [isRolling, enableGravity]);
 
-  // 翻转动画结束
+  // 翻转结束
   useEffect(() => {
     if (isFlipping && !isRolling && side) {
       setDisplaySide(side);
@@ -33,6 +68,11 @@ const Coin: React.FC<CoinProps> = ({ side, isRolling, onAnimationComplete }) => 
       return () => clearTimeout(timer);
     }
   }, [isFlipping, isRolling, side, onAnimationComplete]);
+
+  // 根据重力感应调整倾斜
+  const tiltStyle = gravityEnabled && isFlipping ? {
+    transform: `rotateY(720deg) translateY(-120px) rotateX(${-gravityY * 2}deg) rotateZ(${gravityX * 2}deg)`
+  } : {};
 
   return (
     <div className="relative w-20 h-28 flex flex-col items-center">
@@ -52,6 +92,7 @@ const Coin: React.FC<CoinProps> = ({ side, isRolling, onAnimationComplete }) => 
             ${isFlipping ? 'animate-coin-flip' : ''}
             ${!isFlipping && side ? 'animate-coin-land' : ''}
           `}
+          style={tiltStyle}
         >
           {/* 金属光泽 */}
           <div className="absolute inset-0 bg-gradient-to-br from-white/40 via-transparent to-black/10 rounded-full"></div>
