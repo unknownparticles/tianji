@@ -5,18 +5,6 @@ interface TaijiRevealProps {
   onComplete: () => void;
 }
 
-// 八卦名称和位置（在外圈）
-const BAGUA = [
-  { name: '乾', angle: 0 },
-  { name: '兑', angle: 45 },
-  { name: '离', angle: 90 },
-  { name: '震', angle: 135 },
-  { name: '巽', angle: 180 },
-  { name: '坎', angle: 225 },
-  { name: '艮', angle: 270 },
-  { name: '坤', angle: 315 },
-];
-
 const TaijiReveal: React.FC<TaijiRevealProps> = ({ onComplete }) => {
   const [phase, setPhase] = useState<'taiji' | 'bagua' | 'expand' | 'fade'>('taiji');
 
@@ -45,81 +33,105 @@ const TaijiReveal: React.FC<TaijiRevealProps> = ({ onComplete }) => {
         `}
         style={{ transition: 'all 1s ease-out' }}
       >
-        {/* 太极 SVG */}
+        {/* 太极八卦 SVG */}
         <div
-          className={`
-            ${phase !== 'fade' ? 'taiji-spin' : ''}
-          `}
+          className={phase !== 'fade' ? 'animate-spin' : ''}
+          style={{ animationDuration: '8s' }}
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
-            viewBox="-100 -100 200 200"
-            width="200"
-            height="200"
+            viewBox="-350 -350 700 700"
+            width="280"
+            height="280"
             style={{
               filter: 'drop-shadow(0 0 20px rgba(251, 191, 36, 0.5))',
             }}
           >
-            {/* 外圆 */}
-            <circle cx="0" cy="0" r="100" fill="white" stroke="#991b1b" strokeWidth="2" />
+            {/* 中心太极 */}
+            <g>
+              <circle cx="0" cy="0" r="80" fill="#fff" />
+              <path
+                fill="#000"
+                d="
+                  M0,-80
+                  A80,80 0 0 1 0,80
+                  A40,40 0 0 0 0,0
+                  A40,40 0 0 1 0,-80Z"
+              />
+              <circle cx="0" cy="-40" r="40" fill="#fff" />
+              <circle cx="0" cy="40" r="40" fill="#000" />
+              <circle cx="0" cy="-40" r="8" fill="#000" />
+              <circle cx="0" cy="40" r="8" fill="#fff" />
+            </g>
 
-            {/* 黑色半边 */}
-            <path
-              d="
-                M0,-100
-                A100,100 0 0 1 0,100
-                A50,50 0 0 0 0,0
-                A50,50 0 0 1 0,-100
-              "
-              fill="black"
-            />
+            <defs>
+              <g id="yang">
+                <rect x="-40" y="-5" width="80" height="10" fill="#000" />
+              </g>
 
-            {/* 白色上鱼 */}
-            <circle cx="0" cy="-50" r="50" fill="white" />
+              <g id="yin">
+                <rect x="-40" y="-5" width="30" height="10" fill="#000" />
+                <rect x="10" y="-5" width="30" height="10" fill="#000" />
+              </g>
+            </defs>
 
-            {/* 黑色下鱼 */}
-            <circle cx="0" cy="50" r="50" fill="black" />
+            {/* ☰ 乾 */}
+            <g transform="translate(0,-220)">
+              <use href="#yang" y="-30" />
+              <use href="#yang" />
+              <use href="#yang" y="30" />
+            </g>
 
-            {/* 阳眼 */}
-            <circle cx="0" cy="-50" r="10" fill="black" />
+            {/* ☱ 兑 */}
+            <g transform="translate(155,-155) rotate(45)">
+              <use href="#yang" y="-30" />
+              <use href="#yang" />
+              <use href="#yin" y="30" />
+            </g>
 
-            {/* 阴眼 */}
-            <circle cx="0" cy="50" r="10" fill="white" />
+            {/* ☲ 离 */}
+            <g transform="translate(220,0) rotate(90)">
+              <use href="#yang" y="-30" />
+              <use href="#yin" />
+              <use href="#yang" y="30" />
+            </g>
+
+            {/* ☳ 震 */}
+            <g transform="translate(155,155) rotate(135)">
+              <use href="#yin" y="-30" />
+              <use href="#yang" />
+              <use href="#yang" y="30" />
+            </g>
+
+            {/* ☷ 坤 */}
+            <g transform="translate(0,220)">
+              <use href="#yin" y="-30" />
+              <use href="#yin" />
+              <use href="#yin" y="30" />
+            </g>
+
+            {/* ☶ 艮 */}
+            <g transform="translate(-155,155) rotate(225)">
+              <use href="#yang" y="-30" />
+              <use href="#yin" />
+              <use href="#yin" y="30" />
+            </g>
+
+            {/* ☵ 坎 */}
+            <g transform="translate(-220,0) rotate(270)">
+              <use href="#yin" y="-30" />
+              <use href="#yang" />
+              <use href="#yin" y="30" />
+            </g>
+
+            {/* ☴ 巽 */}
+            <g transform="translate(-155,-155) rotate(315)">
+              <use href="#yang" y="-30" />
+              <use href="#yin" />
+              <use href="#yang" y="30" />
+            </g>
           </svg>
         </div>
-
-        {/* 八卦在外圈 */}
-        {(phase === 'bagua' || phase === 'expand' || phase === 'fade') && (
-          <div className="absolute inset-0">
-            {BAGUA.map((bagua) => (
-              <div
-                key={bagua.name}
-                className={`
-                  absolute text-3xl font-bold
-                  transition-all duration-500
-                  ${phase === 'bagua' ? 'opacity-100 scale-100' : 'opacity-0 scale-75'}
-                `}
-                style={{
-                  left: '50%',
-                  top: '50%',
-                  transform: `rotate(${bagua.angle}deg) translateY(-130px) rotate(-${bagua.angle}deg)`,
-                  color: bagua.angle === 0 || bagua.angle === 180 ? '#dc2626' : '#991b1b',
-                }}
-              >
-                {bagua.name}
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* 外圈装饰 */}
-        <div
-          className="absolute rounded-full border-2 border-red-900/20"
-          style={{
-            width: '280px',
-            height: '280px',
-          }}
-        />
       </div>
 
       {/* 扩散光效 */}
@@ -133,13 +145,6 @@ const TaijiReveal: React.FC<TaijiRevealProps> = ({ onComplete }) => {
       )}
 
       <style>{`
-        @keyframes taijiSpin {
-          from { transform: rotate(0deg); }
-          to { transform: rotate(360deg); }
-        }
-        .taiji-spin {
-          animation: taijiSpin 4s linear infinite;
-        }
         @keyframes pulse {
           0%, 100% { transform: scale(1); opacity: 0.5; }
           50% { transform: scale(1.2); opacity: 0.3; }
