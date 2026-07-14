@@ -1,5 +1,5 @@
 
-import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
+import React, { useState, useCallback, useMemo, useRef } from 'react';
 import { LineResult, CoinSide, DivinationState } from './types';
 import { HEXAGRAM_NAMES } from './constants';
 import { interpretHexagram } from './services/geminiService';
@@ -7,7 +7,7 @@ import { useApiKeys } from './hooks/useApiKeys';
 import Coin from './components/Coin';
 import HexagramDisplay from './components/HexagramDisplay';
 import CinematicTaiji from './components/CinematicTaiji';
-import { Sparkles, RefreshCw, ScrollText, CircleAlert, History, HelpCircle, Settings, X, Play } from 'lucide-react';
+import { Sparkles, RefreshCw, ScrollText, CircleAlert, History, HelpCircle, Settings, X, Coins } from 'lucide-react';
 
 const App: React.FC = () => {
   const [state, setState] = useState<DivinationState>({
@@ -26,6 +26,8 @@ const App: React.FC = () => {
   const [tempProvider, setTempProvider] = useState<'gemini' | 'glm' | 'deepseek'>('gemini');
   const [tempApiKey, setTempApiKey] = useState<string>('');
   const [showCinematic, setShowCinematic] = useState(false);
+  const interpretationRequestIdRef = useRef(0);
+  const interpretationInFlightRef = useRef(false);
   const { config, saveConfig } = useApiKeys();
 
   // 初始化临时设置
@@ -33,11 +35,6 @@ const App: React.FC = () => {
     setTempProvider(config.provider);
     setTempApiKey(config.apiKey);
   }, [config, showApiSettingsModal]);
-
-  // 开始起卦，播放开场动画
-  const startDivination = useCallback(() => {
-    setShowCinematic(true);
-  }, []);
 
   const rollTrigram = useCallback(() => {
     if (state.lines.length >= 6 || state.isRolling) return;
@@ -82,7 +79,10 @@ const App: React.FC = () => {
       isLoadingAI: false
     });
     setCurrentBatchCoins([]);
-    setShowTaijiReveal(false);
+    // 让尚未结束的请求失效，避免重置后旧结果重新写回页面。
+    interpretationRequestIdRef.current += 1;
+    interpretationInFlightRef.current = false;
+    setShowCinematic(false);
     setConsultationQuestion('');
   };
 
@@ -107,20 +107,18 @@ const App: React.FC = () => {
   }, [state.lines]);
 
   const handleInterpretation = async () => {
-    if (state.lines.length < 6) return;
+    if (state.lines.length < 6 || interpretationInFlightRef.current) return;
     if (!config.apiKey) {
       alert('请先在设置中配置 API Key');
       setShowApiSettingsModal(true);
       return;
     }
-    // 播放太极动画，动画结束后获取解读
-    setShowCinematic(true);
-  };
 
-  // 动画结束后获取解读
-  const fetchInterpretation = async () => {
+    const requestId = ++interpretationRequestIdRef.current;
+    interpretationInFlightRef.current = true;
     setState(prev => ({ ...prev, isLoadingAI: true }));
-
+    // 动画只覆盖真实的解析过程，请求与动画同时开始。
+    setShowCinematic(true);
 
     const linesDesc = state.lines.map((l, i) => {
         const type = l.type == 'yang' ? '阳' : '阴';
@@ -129,15 +127,38 @@ const App: React.FC = () => {
     });
 
     const customPrompt = consultationQuestion ? `用户的咨询问题：${consultationQuestion}` : '';
-    const result = await interpretHexagram(mainHexName!, changeHexName, linesDesc, config.provider, customPrompt, config.apiKey);
+    try {
+      const result = await interpretHexagram(mainHexName!, changeHexName, linesDesc, config.provider, customPrompt, config.apiKey);
+      if (requestId !== interpretationRequestIdRef.current) return;
 
-    setState(prev => ({
-      ...prev,
-      interpretation: result || "解读失败",
-      isLoadingAI: false
-    }));
-    setHistory(prev => [{ name: mainHexName!, date: new Date().toLocaleString() }, ...prev.slice(0, 9)]);
+      setState(prev => ({
+        ...prev,
+        interpretation: result || "解读失败",
+        isLoadingAI: false
+      }));
+      setHistory(prev => [{ name: mainHexName!, date: new Date().toLocaleString() }, ...prev.slice(0, 9)]);
+    } catch (error) {
+      if (requestId !== interpretationRequestIdRef.current) return;
+
+      console.error('AI Interpretation Error:', error);
+      setState(prev => ({
+        ...prev,
+        interpretation: "天机暂时不可泄露（解析出错），请静心稍后再试。",
+        isLoadingAI: false
+      }));
+    } finally {
+      if (requestId === interpretationRequestIdRef.current) {
+        interpretationInFlightRef.current = false;
+      }
+    }
   };
+
+  const handleCinematicComplete = useCallback(() => {
+    setShowCinematic(false);
+    requestAnimationFrame(() => {
+      document.getElementById('interpretation-result')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  }, []);
   return (
     <div className="max-w-4xl mx-auto px-4 py-8">
       {/* Header */}
@@ -214,19 +235,8 @@ const App: React.FC = () => {
           </div>
 
           <div className="flex flex-col items-center gap-4">
-            {/* 起始按钮 - 播放开场动画 */}
-            {state.lines.length === 0 && !state.isRolling && (
-              <button
-                onClick={startDivination}
-                className="w-full md:w-72 py-4 px-8 bg-gradient-to-r from-amber-800 to-amber-700 hover:from-amber-700 hover:to-amber-600 text-white rounded-full font-bold text-lg shadow-lg transform active:scale-95 transition-all flex items-center justify-center gap-2"
-              >
-                <Play className="w-5 h-5" />
-                开始起卦
-              </button>
-            )}
-
             {/* 掷硬币按钮 */}
-            {state.lines.length > 0 && state.lines.length < 6 && (
+            {state.lines.length < 6 && (
               <button
                 onClick={rollTrigram}
                 disabled={state.isRolling}
@@ -239,7 +249,8 @@ const App: React.FC = () => {
                   </>
                 ) : (
                   <>
-                    掷三枚铜钱 ({state.lines.length === 0 ? '定下三爻' : '定上三爻'})
+                    <Coins className="w-5 h-5" />
+                    {state.lines.length === 0 ? '掷三枚铜钱（定下卦）' : '再掷三枚铜钱（定上卦）'}
                   </>
                 )}
               </button>
@@ -334,7 +345,7 @@ const App: React.FC = () => {
 
       {/* Result Section */}
       {state.interpretation && (
-        <div className="mt-12 bg-[#fffdf5] rounded-3xl p-8 md:p-12 shadow-2xl border-x-8 border-red-900/10">
+        <div id="interpretation-result" className="mt-12 bg-[#fffdf5] rounded-3xl p-8 md:p-12 shadow-2xl border-x-8 border-red-900/10 scroll-mt-6">
           <div className="max-w-3xl mx-auto">
             <div className="flex items-center justify-between mb-10 border-b border-stone-200 pb-4">
                 <div>
@@ -440,9 +451,9 @@ const App: React.FC = () => {
         </div>
       )}
 
-      {/* 电影级开场动画 */}
+      {/* 解卦请求期间显示推演动画，请求完成后由组件平滑退出。 */}
       {showCinematic && (
-        <CinematicTaiji onComplete={() => setShowCinematic(false)} onFetch={fetchInterpretation} />
+        <CinematicTaiji isComplete={!state.isLoadingAI} onComplete={handleCinematicComplete} />
       )}
     </div>
   );
