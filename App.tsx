@@ -19,6 +19,7 @@ import CoinTossStage, { type TossTriggerSource } from './components/CoinTossStag
 import HexagramDisplay from './components/HexagramDisplay';
 import CinematicTaiji from './components/CinematicTaiji';
 import InterpretationSettingsModal from './components/InterpretationSettingsModal';
+import InterpretationContent from './components/InterpretationContent';
 import QuestionCategoryDialog from './components/QuestionCategoryDialog';
 import { Sparkles, RefreshCw, ScrollText, CircleAlert, History, HelpCircle, Settings, Coins, Vibrate } from 'lucide-react';
 
@@ -304,31 +305,82 @@ const App: React.FC = () => {
     });
   }, []);
   return (
-    <div className="max-w-4xl mx-auto px-4 py-8">
+    <div className="ink-paper-shell min-h-screen">
+      <div className="mx-auto max-w-6xl px-4 py-6 sm:py-10">
+      <style>{`
+        .ink-paper-shell {
+          color: #2c2923;
+          background: #f1eee5;
+        }
+        .ink-panel-divider {
+          width: 1px;
+          background: #aa9e8a;
+          opacity: 0.72;
+        }
+        .ink-result-scroll {
+          border: 1px solid #b9aa92;
+          border-top: 4px solid #8f2d25;
+          background: #fcfaf3;
+          box-shadow: 0 14px 30px rgba(65, 51, 35, 0.11);
+        }
+        .ink-interpretation-content {
+          color: #39352e;
+          font-size: 1rem;
+          line-height: 1.9;
+        }
+        .ink-interpretation-content h1,
+        .ink-interpretation-content h2 {
+          margin: 2.25rem 0 1rem;
+          color: #7f241e;
+          font-weight: 700;
+          line-height: 1.35;
+        }
+        .ink-interpretation-content h1 { font-size: 1.65rem; }
+        .ink-interpretation-content h2 {
+          padding-left: 0.8rem;
+          border-left: 3px solid #9a3027;
+          font-size: 1.25rem;
+        }
+        .ink-interpretation-content p { margin: 0.9rem 0; }
+        .ink-interpretation-content strong { color: #7f241e; font-weight: 700; }
+        .ink-interpretation-content blockquote {
+          margin: 1.15rem 0;
+          padding: 0.75rem 1rem;
+          border-left: 3px solid #b77b35;
+          background: #f4eee1;
+          color: #4f463b;
+        }
+        .ink-interpretation-emphasis {
+          padding: 0.6rem 0.8rem;
+          border-top: 1px solid #d4c5ad;
+          border-bottom: 1px solid #d4c5ad;
+          background: #f8f2e6;
+        }
+      `}</style>
       {/* Header */}
-      <header className="text-center mb-10 relative">
+      <header className="relative mb-8 border-b border-stone-400 pb-7 text-center">
         <button 
           onClick={() => {
             setTempProvider(config.provider);
             setTempApiKey(config.apiKey);
             setShowApiSettingsModal(true);
           }}
-          className="absolute right-0 top-0 p-2 text-stone-500 hover:text-red-800 transition-colors"
+          className="absolute right-0 top-0 rounded-sm border border-transparent p-2 text-stone-600 transition-colors hover:border-stone-400 hover:text-red-800"
           title="解卦设置"
         >
           <Settings className="w-5 h-5" />
         </button>
-        <h1 className="text-4xl md:text-5xl font-bold text-red-900 mb-2 flex items-center justify-center gap-3">
-            <ScrollText className="w-10 h-10" />
+        <h1 className="mb-2 flex items-center justify-center gap-3 text-4xl font-bold text-red-900 md:text-5xl">
+            <ScrollText className="h-9 w-9" />
             天机卦
         </h1>
-        <p className="text-stone-600 italic">"太极生两仪，两仪生四象，四象生八卦"</p>
+        <p className="text-sm text-stone-600">太极生两仪，两仪生四象，四象生八卦</p>
       </header>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+      <div className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,7fr)_1px_minmax(280px,4fr)]">
         
         {/* Left: Throw Area */}
-        <div className="lg:col-span-7 bg-white/90 backdrop-blur rounded-2xl p-6 shadow-xl border border-stone-200">
+        <section className="border border-stone-300 bg-[#fcfaf3] p-5 shadow-[0_10px_24px_rgba(65,51,35,0.08)] sm:p-7">
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-xl font-bold text-stone-800 flex items-center gap-2">
                 <RefreshCw className={`w-5 h-5 ${state.isRolling ? 'animate-spin' : ''}`} />
@@ -337,14 +389,14 @@ const App: React.FC = () => {
             <div className="flex gap-2">
                 <button 
                   onClick={() => setShowHistory(!showHistory)}
-                  className="p-2 text-stone-500 hover:text-red-800 transition-colors"
+                  className="rounded-sm border border-transparent p-2 text-stone-600 transition-colors hover:border-stone-400 hover:text-red-800"
                   title="历史记录"
                 >
                     <History className="w-5 h-5" />
                 </button>
                 <button 
                   onClick={reset}
-                  className="p-2 text-stone-500 hover:text-red-800 transition-colors"
+                  className="rounded-sm border border-transparent p-2 text-stone-600 transition-colors hover:border-stone-400 hover:text-red-800"
                   title="重新起卦"
                 >
                     <RefreshCw className="w-5 h-5" />
@@ -353,7 +405,7 @@ const App: React.FC = () => {
           </div>
 
           {showHistory && (
-              <div className="mb-6 p-4 bg-stone-50 rounded-lg border border-stone-100 text-sm">
+              <div className="mb-6 border-y border-stone-300 bg-[#f6f1e6] p-4 text-sm">
                   <h3 className="font-bold mb-2">最近占卜:</h3>
                   {history.length === 0 ? <p className="text-stone-400">暂无记录</p> : (
                       <ul className="space-y-1">
@@ -385,7 +437,7 @@ const App: React.FC = () => {
               <button
                 onClick={handleButtonToss}
                 disabled={state.isRolling}
-                className="w-full md:w-72 py-4 px-8 bg-red-900 hover:bg-red-800 disabled:bg-stone-400 text-white rounded-full font-bold text-lg shadow-lg transform active:scale-95 transition-all flex items-center justify-center gap-2"
+                className="flex w-full items-center justify-center gap-2 rounded-sm bg-[#8f2d25] px-8 py-4 text-lg font-bold text-white shadow-[0_5px_0_#672019] transition-colors hover:bg-[#76251f] disabled:bg-stone-400 md:w-72"
               >
                 {state.isRolling ? (
                   <>
@@ -416,7 +468,7 @@ const App: React.FC = () => {
                       type="button"
                       onClick={handleEnableShake}
                       disabled={shakeStatus === 'requesting'}
-                      className="flex items-center gap-2 rounded-lg border border-stone-300 bg-white px-4 py-2 text-sm font-bold text-stone-700 transition-colors hover:border-red-800 hover:text-red-900 disabled:cursor-wait disabled:opacity-60"
+                      className="flex items-center gap-2 rounded-sm border border-stone-400 bg-[#fcfaf3] px-4 py-2 text-sm font-bold text-stone-700 transition-colors hover:border-red-800 hover:text-red-900 disabled:cursor-wait disabled:opacity-60"
                     >
                       <Vibrate className="h-4 w-4" />
                       {shakeStatus === 'needs-permission'
@@ -436,7 +488,7 @@ const App: React.FC = () => {
             {/* 卦象完成 - 显示解读 */}
             {state.lines.length === 6 && (
               <div className="w-full space-y-4">
-                <div className="p-5 bg-red-50 border border-red-200 rounded-xl text-center shadow-inner">
+                    <div className="border-y border-[#b88b6b] bg-[#f8f1e5] p-5 text-center">
                     <p className={changeHexName
                       ? 'hexagram-name-row mb-1 flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-xl font-bold text-red-900 sm:text-2xl'
                       : 'text-red-900 font-bold text-2xl mb-1'}>
@@ -452,13 +504,13 @@ const App: React.FC = () => {
                 </div>
 
                 {/* Consultation Question Input */}
-                <div className="p-4 bg-stone-50 rounded-lg border border-stone-200">
+                <div className="border border-stone-300 bg-[#f8f4ea] p-4">
                   <label className="text-sm font-bold text-stone-700 block mb-2">咨询问题（可选）</label>
                   <textarea
                     value={consultationQuestion}
                     onChange={(e) => setConsultationQuestion(e.target.value)}
                     placeholder="例如：最近工作会不会有机遇？请输入你想咨询的问题..."
-                    className="w-full p-3 rounded border border-stone-300 text-sm focus:outline-none focus:ring-2 focus:ring-red-800"
+                    className="w-full border border-stone-400 bg-[#fffdf7] p-3 text-sm focus:outline-none focus:ring-2 focus:ring-red-800"
                     rows={3}
                   />
                 </div>
@@ -467,7 +519,7 @@ const App: React.FC = () => {
                   <button
                     onClick={handleInterpretation}
                     disabled={state.isLoadingAI}
-                    className="w-full py-4 px-8 bg-gradient-to-r from-amber-700 to-amber-600 hover:from-amber-600 hover:to-amber-500 disabled:bg-stone-400 text-white rounded-full font-bold text-lg shadow-lg flex items-center justify-center gap-2 transition-all"
+                    className="flex w-full items-center justify-center gap-2 rounded-sm border border-[#8f2d25] bg-[#8f2d25] px-8 py-4 text-lg font-bold text-white transition-colors hover:bg-[#76251f] disabled:border-stone-400 disabled:bg-stone-400"
                   >
                     {state.isLoadingAI ? <RefreshCw className="w-5 h-5 animate-spin" /> : <Sparkles className="w-5 h-5" />}
                     {state.isLoadingAI
@@ -483,11 +535,12 @@ const App: React.FC = () => {
                 注：一次掷三枚，每枚对应一爻。正面为阳，反面为阴。掷两次成全卦。
             </p>
           </div>
-        </div>
+        </section>
 
+        <div className="ink-panel-divider hidden lg:block" aria-hidden="true" />
         {/* Right: Hexagram Sidebar */}
-        <div className="lg:col-span-5 flex flex-col gap-6">
-          <div className="bg-white rounded-2xl p-6 shadow-xl border border-stone-200">
+        <aside className="flex flex-col gap-6">
+          <div className="border border-stone-300 bg-[#fcfaf3] p-5 shadow-[0_10px_24px_rgba(65,51,35,0.08)] sm:p-7">
             <h3 className="text-center font-bold text-stone-700 mb-6 border-b pb-2 flex items-center justify-center gap-2">
                 卦象集成
             </h3>
@@ -505,8 +558,8 @@ const App: React.FC = () => {
             )}
           </div>
 
-          <div className="bg-stone-800 text-stone-300 rounded-2xl p-6 shadow-xl border-t-4 border-amber-600">
-            <h4 className="flex items-center gap-2 text-amber-500 font-bold mb-4">
+          <div className="border-l-4 border-[#9a3027] bg-[#302d27] p-6 text-stone-200">
+            <h4 className="mb-4 flex items-center gap-2 font-bold text-[#e4bd75]">
                 <CircleAlert className="w-4 h-4" />
                 起卦指南
             </h4>
@@ -525,49 +578,35 @@ const App: React.FC = () => {
                 </li>
             </ul>
           </div>
-        </div>
+        </aside>
       </div>
 
       {/* Result Section */}
       {state.interpretation && (
-        <div id="interpretation-result" className="mt-12 bg-[#fffdf5] rounded-3xl p-8 md:p-12 shadow-2xl border-x-8 border-red-900/10 scroll-mt-6">
+        <section id="interpretation-result" className="ink-result-scroll mt-12 scroll-mt-6 p-6 sm:p-10 md:p-12">
           <div className="max-w-3xl mx-auto">
             <div className="flex items-center justify-between mb-10 border-b border-stone-200 pb-4">
                 <div>
                     <h2 className="text-3xl font-bold text-red-900">天机解读</h2>
                     <p className="text-stone-400 text-xs mt-1 italic">卦由心生，境随心转</p>
                 </div>
-                <button onClick={() => window.print()} className="flex items-center gap-1 text-sm text-stone-400 hover:text-red-800 transition-colors">
+                <button onClick={() => window.print()} className="flex items-center gap-1 rounded-sm border border-transparent px-2 py-1 text-sm text-stone-500 transition-colors hover:border-stone-400 hover:text-red-800">
                     保存卦辞
                 </button>
             </div>
-            <div className="prose prose-stone lg:prose-lg max-w-none prose-headings:text-red-900 prose-strong:text-amber-800 prose-p:leading-loose">
-              {state.interpretation.split('\n').map((line, i) => {
-                  if (line.trim() === '') return <br key={i} />;
-                  if (line.startsWith('#')) {
-                      return <h3 key={i} className="text-2xl font-bold mt-8 mb-4 text-red-800 border-l-4 border-red-800 pl-4">{line.replace(/#/g, '').trim()}</h3>;
-                  }
-                  if (line.startsWith('**')) {
-                      return <p key={i} className="my-3 font-bold text-amber-900 bg-amber-50 p-2 rounded">{line.replace(/\*\*/g, '')}</p>;
-                  }
-                  if (line.startsWith('> ')) {
-                      return <blockquote key={i} className="my-4 border-l-4 border-amber-600 bg-stone-50 px-4 py-3 text-stone-700">{line.slice(2)}</blockquote>;
-                  }
-                  return <p key={i} className="my-3 text-stone-700">{line}</p>;
-              })}
-            </div>
+            <InterpretationContent content={state.interpretation} />
             <div className="mt-16 pt-8 border-t border-stone-200 flex flex-col items-center">
                 <div className="w-16 h-[2px] bg-stone-300 mb-8"></div>
                 <p className="text-stone-500 italic mb-6 text-center max-w-md">"物极必反，否极泰来。卦象仅供参考，命运掌握在自己手中。"</p>
                 <button 
                   onClick={reset}
-                  className="px-10 py-3 bg-red-900 text-white hover:bg-red-800 rounded-full transition-all shadow-lg font-bold"
+                  className="rounded-sm bg-[#8f2d25] px-10 py-3 font-bold text-white shadow-[0_4px_0_#672019] transition-colors hover:bg-[#76251f]"
                 >
                     再求一卦
                 </button>
             </div>
           </div>
-        </div>
+        </section>
       )}
 
       {/* 解卦方式设置 */}
@@ -601,6 +640,7 @@ const App: React.FC = () => {
       {showCinematic && (
         <CinematicTaiji isComplete={!state.isLoadingAI} onComplete={handleCinematicComplete} />
       )}
+      </div>
     </div>
   );
 };

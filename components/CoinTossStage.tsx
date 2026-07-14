@@ -29,19 +29,17 @@ const CoinTossStage: React.FC<CoinTossStageProps> = ({
   const SoundIcon = muted ? VolumeX : Volume2;
 
   return (
-    <div className="coin-storm-stage" data-rolling={isRolling}>
+    <div className="coin-storm-stage ink-coin-stage" data-rolling={isRolling}>
       <style>{`
         .coin-storm-stage {
           position: relative;
           width: 100%;
           min-height: 292px;
           overflow: hidden;
-          border: 1px solid rgba(112, 79, 45, 0.34);
-          border-radius: 8px;
-          background:
-            radial-gradient(circle at 50% 30%, rgba(221, 162, 65, 0.2), transparent 34%),
-            linear-gradient(145deg, #201d19 0%, #33261f 58%, #5a2c22 100%);
-          box-shadow: inset 0 0 42px rgba(10, 8, 5, 0.34);
+          border: 1px solid #a99a82;
+          border-radius: 2px;
+          background: #e9e1d2;
+          box-shadow: inset 0 0 0 8px rgba(112, 91, 61, 0.05), inset 0 0 42px rgba(90, 69, 44, 0.14);
           isolation: isolate;
         }
         .coin-storm-stage::before,
@@ -52,7 +50,7 @@ const CoinTossStage: React.FC<CoinTossStageProps> = ({
         }
         .coin-storm-stage::before {
           inset: 18px;
-          border: 1px solid rgba(229, 191, 118, 0.12);
+          border: 1px solid rgba(96, 72, 42, 0.22);
           border-radius: 50%;
           transform: scaleY(0.62);
         }
@@ -61,7 +59,7 @@ const CoinTossStage: React.FC<CoinTossStageProps> = ({
           height: 10px;
           left: calc(50% - 5px);
           top: 23px;
-          border: 1px solid rgba(226, 171, 74, 0.58);
+          border: 1px solid rgba(143, 45, 37, 0.7);
           transform: rotate(45deg);
         }
         .coin-storm-sound {
@@ -74,16 +72,16 @@ const CoinTossStage: React.FC<CoinTossStageProps> = ({
           height: 36px;
           align-items: center;
           justify-content: center;
-          border: 1px solid rgba(239, 203, 132, 0.28);
-          border-radius: 50%;
-          color: #f0d8a3;
-          background: rgba(31, 27, 23, 0.72);
+          border: 1px solid #a99a82;
+          border-radius: 2px;
+          color: #5e4730;
+          background: #f8f3e8;
           transition: color 180ms ease, border-color 180ms ease, background 180ms ease;
         }
         .coin-storm-sound:hover {
-          color: #fff3cf;
-          border-color: rgba(239, 203, 132, 0.58);
-          background: rgba(96, 42, 31, 0.84);
+          color: #8f2d25;
+          border-color: #8f2d25;
+          background: #fffdf7;
         }
         .coin-storm-coins {
           position: absolute;
@@ -211,7 +209,7 @@ const CoinTossStage: React.FC<CoinTossStageProps> = ({
           top: 45%;
           border-radius: 50%;
           opacity: 0;
-          background: linear-gradient(90deg, transparent, rgba(247, 193, 87, 0.9), transparent);
+          background: linear-gradient(90deg, transparent, rgba(143, 45, 37, 0.72), transparent);
           transform: rotate(var(--trail-angle)) scaleX(0.3);
         }
         .coin-storm-trail--two {
@@ -227,8 +225,8 @@ const CoinTossStage: React.FC<CoinTossStageProps> = ({
           top: var(--spark-top);
           border-radius: 50%;
           opacity: 0;
-          background: #f6c45f;
-          box-shadow: 0 0 10px rgba(246, 196, 95, 0.82);
+          background: #a33b2f;
+          box-shadow: 0 0 10px rgba(163, 59, 47, 0.5);
         }
         .coin-storm-stage[data-rolling="true"] .coin-flight {
           animation: coin-storm-flight 1320ms cubic-bezier(0.2, 0.75, 0.25, 1) var(--coin-delay) both;
@@ -252,7 +250,7 @@ const CoinTossStage: React.FC<CoinTossStageProps> = ({
           bottom: 12px;
           left: 48px;
           margin: 0;
-          color: #d9c8a5;
+          color: #5d4935;
           font-size: 12px;
           text-align: center;
           letter-spacing: 0;
