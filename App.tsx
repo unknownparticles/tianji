@@ -3,14 +3,41 @@ import React, { useState, useCallback, useMemo, useRef } from 'react';
 import { LineResult, CoinSide, DivinationState } from './types';
 import { HEXAGRAM_NAMES } from './constants';
 import { detectQuestionCategory, interpretLocally } from './services/localInterpretationService';
+import { createCoinToss } from './services/coinTossService';
+import {
+  COIN_SOUND_MUTED_KEY,
+  TOSS_DURATION_MS,
+  parseMutedPreference,
+  playCoinLandingFeedback,
+  playCoinLaunchSound,
+  unlockCoinAudio
+} from './services/coinFeedback';
 import { providerRequiresApiKey, useApiKeys, type InterpretationProvider } from './hooks/useApiKeys';
+import { useShakeToToss, type ShakeStatus } from './hooks/useShakeToToss';
 import type { QuestionCategory, SelectableQuestionCategory } from './data/iching/types';
-import Coin from './components/Coin';
+import CoinTossStage, { type TossTriggerSource } from './components/CoinTossStage';
 import HexagramDisplay from './components/HexagramDisplay';
 import CinematicTaiji from './components/CinematicTaiji';
 import InterpretationSettingsModal from './components/InterpretationSettingsModal';
 import QuestionCategoryDialog from './components/QuestionCategoryDialog';
-import { Sparkles, RefreshCw, ScrollText, CircleAlert, History, HelpCircle, Settings, Coins } from 'lucide-react';
+import { Sparkles, RefreshCw, ScrollText, CircleAlert, History, HelpCircle, Settings, Coins, Vibrate } from 'lucide-react';
+
+const SHAKE_STATUS_TEXT: Record<ShakeStatus, string> = {
+  unsupported: '当前设备或浏览器不支持摇一摇',
+  'needs-permission': '摇一摇尚未启用',
+  enabled: '摇一摇已启用',
+  denied: '传感器权限已拒绝',
+  error: '摇一摇启用失败'
+};
+
+function getInitialSoundMuted(): boolean {
+  if (typeof window === 'undefined') return false;
+  try {
+    return parseMutedPreference(window.localStorage.getItem(COIN_SOUND_MUTED_KEY));
+  } catch {
+    return false;
+  }
+}
 
 const App: React.FC = () => {
   const [state, setState] = useState<DivinationState>({
@@ -30,6 +57,10 @@ const App: React.FC = () => {
   const [tempApiKey, setTempApiKey] = useState<string>('');
   const [pendingCategories, setPendingCategories] = useState<SelectableQuestionCategory[] | null>(null);
   const [showCinematic, setShowCinematic] = useState(false);
+  const [tossTriggerSource, setTossTriggerSource] = useState<TossTriggerSource | null>(null);
+  const [isSoundMuted, setIsSoundMuted] = useState(getInitialSoundMuted);
+  const tossInFlightRef = useRef(false);
+  const tossTimerRef = useRef<number | null>(null);
   const interpretationRequestIdRef = useRef(0);
   const interpretationInFlightRef = useRef(false);
   const { config, saveConfig } = useApiKeys();
@@ -40,41 +71,72 @@ const App: React.FC = () => {
     setTempApiKey(config.apiKey);
   }, [config, showApiSettingsModal]);
 
-  const rollTrigram = useCallback(() => {
-    if (state.lines.length >= 6 || state.isRolling) return;
+  const cancelActiveToss = useCallback((clearSource = true) => {
+    if (tossTimerRef.current !== null) {
+      window.clearTimeout(tossTimerRef.current);
+      tossTimerRef.current = null;
+    }
+    tossInFlightRef.current = false;
+    if (clearSource) setTossTriggerSource(null);
+  }, []);
 
-    setState(prev => ({ ...prev, isRolling: true, currentResult: null }));
-    setCurrentBatchCoins([]);
+  /** 按钮和传感器共用的唯一抛币事务，ref 保证同一时刻只能启动一次。 */
+  const triggerCoinToss = useCallback((source: TossTriggerSource) => {
+    if (tossInFlightRef.current || state.isRolling || state.lines.length >= 6) return;
 
-    // Simulate animation time
-    setTimeout(() => {
-      const results: CoinSide[] = [
-        Math.random() > 0.5 ? 'heads' : 'tails',
-        Math.random() > 0.5 ? 'heads' : 'tails',
-        Math.random() > 0.5 ? 'heads' : 'tails'
-      ];
+    tossInFlightRef.current = true;
+    setTossTriggerSource(source);
+    const toss = createCoinToss();
+    setCurrentBatchCoins(toss.coins);
+    setState(previous => ({ ...previous, isRolling: true, currentResult: null }));
+    playCoinLaunchSound(isSoundMuted);
 
-      setCurrentBatchCoins(results);
-
-      // Convert each coin to a line: Heads = Yang, Tails = Yin
-      // To keep "Changing Lines" (动爻) possible in this simplified method, 
-      // we randomly assign "Changing" status to keep the AI interpretation interesting (approx 15% chance)
-      const newLines: LineResult[] = results.map(side => ({
-        coins: [side, side, side], // Mocking the coin group for the type
-        sum: side === 'heads' ? 9 : 6, // Just a representation
-        type: side === 'heads' ? 'yang' : 'yin',
-        isChanging: Math.random() < 0.15 // Rare chance to be an "Old" (changing) line
-      }));
-
-      setState(prev => ({
-        ...prev,
+    tossTimerRef.current = window.setTimeout(() => {
+      playCoinLandingFeedback(isSoundMuted);
+      setState(previous => ({
+        ...previous,
         isRolling: false,
-        lines: [...prev.lines, ...newLines]
+        lines: [...previous.lines, ...toss.lines]
       }));
-    }, 1200);
-  }, [state.lines.length, state.isRolling]);
+      tossInFlightRef.current = false;
+      tossTimerRef.current = null;
+      setTossTriggerSource(null);
+    }, TOSS_DURATION_MS);
+  }, [isSoundMuted, state.isRolling, state.lines.length]);
+
+  const canToss = state.lines.length < 6 && !state.isRolling;
+  const { status: shakeStatus, enable: enableShake } = useShakeToToss({
+    canToss,
+    onShake: () => triggerCoinToss('shake')
+  });
+
+  const handleButtonToss = () => {
+    void unlockCoinAudio();
+    triggerCoinToss('button');
+  };
+
+  const handleEnableShake = () => {
+    // iOS 权限申请必须先在当前点击调用栈内开始。
+    void enableShake();
+    void unlockCoinAudio();
+  };
+
+  const toggleCoinSound = () => {
+    setIsSoundMuted(previous => {
+      const next = !previous;
+      try {
+        window.localStorage.setItem(COIN_SOUND_MUTED_KEY, String(next));
+      } catch {
+        // 隐私模式可能禁用存储，当前页面内的静音状态仍然有效。
+      }
+      return next;
+    });
+  };
+
+  React.useEffect(() => () => cancelActiveToss(false), [cancelActiveToss]);
 
   const reset = () => {
+    cancelActiveToss();
     setState({
       lines: [],
       isRolling: false,
@@ -285,20 +347,21 @@ const App: React.FC = () => {
           )}
 
           {/* Coins Display */}
-          <div className="flex justify-center gap-6 md:gap-10 py-12 bg-stone-50 rounded-xl border-inner border border-stone-200 mb-8 relative overflow-hidden">
-            {/* Background Texture */}
-            <div className="absolute inset-0 opacity-5 pointer-events-none bg-[url('https://www.transparenttextures.com/patterns/paper-fibers.png')]"></div>
-            
-            <Coin side={currentBatchCoins[0] || null} isRolling={state.isRolling} />
-            <Coin side={currentBatchCoins[1] || null} isRolling={state.isRolling} />
-            <Coin side={currentBatchCoins[2] || null} isRolling={state.isRolling} />
+          <div className="mb-8">
+            <CoinTossStage
+              sides={currentBatchCoins}
+              isRolling={state.isRolling}
+              muted={isSoundMuted}
+              triggerSource={tossTriggerSource}
+              onToggleMuted={toggleCoinSound}
+            />
           </div>
 
           <div className="flex flex-col items-center gap-4">
             {/* 掷硬币按钮 */}
             {state.lines.length < 6 && (
               <button
-                onClick={rollTrigram}
+                onClick={handleButtonToss}
                 disabled={state.isRolling}
                 className="w-full md:w-72 py-4 px-8 bg-red-900 hover:bg-red-800 disabled:bg-stone-400 text-white rounded-full font-bold text-lg shadow-lg transform active:scale-95 transition-all flex items-center justify-center gap-2"
               >
@@ -314,6 +377,33 @@ const App: React.FC = () => {
                   </>
                 )}
               </button>
+            )}
+
+            {state.lines.length < 6 && (
+              <div className="flex min-h-9 items-center justify-center" aria-live="polite">
+                {shakeStatus === 'enabled' ? (
+                  <p className="flex items-center gap-2 text-sm font-bold text-emerald-700">
+                    <Vibrate className="h-4 w-4" />
+                    {SHAKE_STATUS_TEXT[shakeStatus]}
+                  </p>
+                ) : shakeStatus === 'unsupported' ? (
+                  <p className="text-center text-xs text-stone-400">{SHAKE_STATUS_TEXT[shakeStatus]}</p>
+                ) : (
+                  <div className="flex flex-col items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={handleEnableShake}
+                      className="flex items-center gap-2 rounded-lg border border-stone-300 bg-white px-4 py-2 text-sm font-bold text-stone-700 transition-colors hover:border-red-800 hover:text-red-900"
+                    >
+                      <Vibrate className="h-4 w-4" />
+                      {shakeStatus === 'needs-permission' ? '启用摇一摇' : '重新启用摇一摇'}
+                    </button>
+                    {shakeStatus !== 'needs-permission' && (
+                      <p className="text-xs text-red-700">{SHAKE_STATUS_TEXT[shakeStatus]}</p>
+                    )}
+                  </div>
+                )}
+              </div>
             )}
 
             {/* 卦象完成 - 显示解读 */}
