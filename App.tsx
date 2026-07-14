@@ -437,10 +437,10 @@ const App: React.FC = () => {
             {state.lines.length === 6 && (
               <div className="w-full space-y-4">
                 <div className="p-5 bg-red-50 border border-red-200 rounded-xl text-center shadow-inner">
-                    <p className="text-red-900 font-bold text-2xl mb-1">
-                        {mainHexName}
-                        {changeHexName && <span className="text-stone-400 font-normal mx-2">之</span>}
-                        {changeHexName && <span className="">{changeHexName}</span>}
+                    <p className="hexagram-name-row mb-1 flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-xl font-bold text-red-900 sm:text-2xl">
+                        <span className="whitespace-nowrap">{mainHexName}</span>
+                        {changeHexName && <span className="whitespace-nowrap font-normal text-stone-400">之</span>}
+                        {changeHexName && <span className="whitespace-nowrap">{changeHexName}</span>}
                     </p>
                     <p className="text-xs text-stone-500 uppercase tracking-widest">
                         {state.lines.some(l => l.isChanging) ? '内含动爻 • 变卦已现' : '六爻安静 • 本卦主事'}
@@ -487,7 +487,7 @@ const App: React.FC = () => {
             <h3 className="text-center font-bold text-stone-700 mb-6 border-b pb-2 flex items-center justify-center gap-2">
                 卦象集成
             </h3>
-            <div className="flex justify-around items-start min-h-[220px]">
+            <div className={`hexagram-comparison-grid grid min-h-[220px] grid-cols-1 items-start justify-items-center gap-x-4 gap-y-8 ${changeHexName ? 'sm:grid-cols-2' : ''}`}>
               <HexagramDisplay lines={state.lines} title="本卦" />
               {changeHexName && <HexagramDisplay lines={state.lines} title="变卦" isChangingMode />}
             </div>

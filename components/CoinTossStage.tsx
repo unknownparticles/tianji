@@ -151,18 +151,32 @@ const CoinTossStage: React.FC<CoinTossStageProps> = ({
           box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.52);
           transform: rotate(45deg);
         }
-        .coin-character {
+        .coin-glyph {
           position: absolute;
-          top: 8%;
-          font-size: clamp(10px, 2.8vw, 13px);
+          z-index: 1;
+          font-size: clamp(9px, 2.4vw, 12px);
           font-weight: 700;
+          line-height: 1;
         }
-        .coin-inscription {
-          position: absolute;
+        .coin-glyph--top {
+          top: 8%;
+          left: 50%;
+          transform: translateX(-50%);
+        }
+        .coin-glyph--bottom {
           bottom: 8%;
-          font-size: clamp(8px, 2.2vw, 10px);
-          font-weight: 700;
-          letter-spacing: 0;
+          left: 50%;
+          transform: translateX(-50%);
+        }
+        .coin-glyph--right {
+          top: 50%;
+          right: 8%;
+          transform: translateY(-50%);
+        }
+        .coin-glyph--left {
+          top: 50%;
+          left: 8%;
+          transform: translateY(-50%);
         }
         .coin-result {
           position: absolute;
