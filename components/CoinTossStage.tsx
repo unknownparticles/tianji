@@ -121,7 +121,7 @@ const CoinTossStage: React.FC<CoinTossStageProps> = ({
           transform: rotateY(0deg);
           filter: drop-shadow(0 12px 14px rgba(0, 0, 0, 0.38));
         }
-        .coin-body[data-side="tails"] {
+        .coin-body--rolling[data-side="tails"] {
           transform: rotateY(180deg);
         }
         .coin-face {
@@ -140,6 +140,9 @@ const CoinTossStage: React.FC<CoinTossStageProps> = ({
           color: #5f3b1a;
           background: radial-gradient(circle at 35% 28%, #f5d686 0%, #c88d31 43%, #754519 84%);
           transform: rotateY(180deg);
+        }
+        .coin-face--settled {
+          transform: none;
         }
         .coin-hole {
           position: absolute;

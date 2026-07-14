@@ -34,10 +34,24 @@ function renderCoinInscription(side: keyof typeof COIN_FACE_INSCRIPTIONS) {
   ));
 }
 
+function CoinFace({ side, isSettled = false }: { side: CoinSide; isSettled?: boolean }) {
+  return (
+    <div
+      className={`coin-face coin-face--${side}${isSettled ? ' coin-face--settled' : ''}`}
+      data-coin-face={side}
+      aria-hidden="true"
+    >
+      {renderCoinInscription(side)}
+      <span className="coin-hole" />
+    </div>
+  );
+}
+
 /** 渲染一枚具有独立飞行与翻面层的铜钱，不读取传感器或生成结果。 */
 const Coin: React.FC<CoinProps> = ({ side, isRolling, index }) => {
   const motion = COIN_MOTION[index] || COIN_MOTION[0];
   const finalTurns = motion.turns + (side === 'tails' ? 180 : 0);
+  const resultSide = side || 'heads';
   const style = {
     '--coin-delay': motion.delay,
     '--coin-x': motion.x,
@@ -48,15 +62,11 @@ const Coin: React.FC<CoinProps> = ({ side, isRolling, index }) => {
   return (
     <div className="coin-storm-slot" data-coin-index={index} style={style}>
       <div className="coin-flight">
-        <div className="coin-body" data-side={side || 'heads'}>
-          <div className="coin-face coin-face--heads" data-coin-face="heads" aria-hidden="true">
-            {renderCoinInscription('heads')}
-            <span className="coin-hole" />
-          </div>
-          <div className="coin-face coin-face--tails" data-coin-face="tails" aria-hidden="true">
-            {renderCoinInscription('tails')}
-            <span className="coin-hole" />
-          </div>
+        <div className={`coin-body ${isRolling ? 'coin-body--rolling' : 'coin-body--settled'}`} data-side={resultSide}>
+          {isRolling ? <>
+            <CoinFace side="heads" />
+            <CoinFace side="tails" />
+          </> : <CoinFace side={resultSide} isSettled />}
         </div>
       </div>
 
