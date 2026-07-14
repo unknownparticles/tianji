@@ -2,12 +2,15 @@
 import React, { useState, useCallback, useMemo, useRef } from 'react';
 import { LineResult, CoinSide, DivinationState } from './types';
 import { HEXAGRAM_NAMES } from './constants';
-import { interpretHexagram } from './services/geminiService';
-import { useApiKeys } from './hooks/useApiKeys';
+import { detectQuestionCategory, interpretLocally } from './services/localInterpretationService';
+import { providerRequiresApiKey, useApiKeys, type InterpretationProvider } from './hooks/useApiKeys';
+import type { QuestionCategory, SelectableQuestionCategory } from './data/iching/types';
 import Coin from './components/Coin';
 import HexagramDisplay from './components/HexagramDisplay';
 import CinematicTaiji from './components/CinematicTaiji';
-import { Sparkles, RefreshCw, ScrollText, CircleAlert, History, HelpCircle, Settings, X, Coins } from 'lucide-react';
+import InterpretationSettingsModal from './components/InterpretationSettingsModal';
+import QuestionCategoryDialog from './components/QuestionCategoryDialog';
+import { Sparkles, RefreshCw, ScrollText, CircleAlert, History, HelpCircle, Settings, Coins } from 'lucide-react';
 
 const App: React.FC = () => {
   const [state, setState] = useState<DivinationState>({
@@ -23,8 +26,9 @@ const App: React.FC = () => {
   const [currentBatchCoins, setCurrentBatchCoins] = useState<CoinSide[]>([]);
   const [consultationQuestion, setConsultationQuestion] = useState<string>('');
   const [showApiSettingsModal, setShowApiSettingsModal] = useState(false);
-  const [tempProvider, setTempProvider] = useState<'gemini' | 'glm' | 'deepseek'>('gemini');
+  const [tempProvider, setTempProvider] = useState<InterpretationProvider>('local');
   const [tempApiKey, setTempApiKey] = useState<string>('');
+  const [pendingCategories, setPendingCategories] = useState<SelectableQuestionCategory[] | null>(null);
   const [showCinematic, setShowCinematic] = useState(false);
   const interpretationRequestIdRef = useRef(0);
   const interpretationInFlightRef = useRef(false);
@@ -83,6 +87,7 @@ const App: React.FC = () => {
     interpretationRequestIdRef.current += 1;
     interpretationInFlightRef.current = false;
     setShowCinematic(false);
+    setPendingCategories(null);
     setConsultationQuestion('');
   };
 
@@ -106,19 +111,88 @@ const App: React.FC = () => {
     return HEXAGRAM_NAMES[getHexCode(state.lines, true)] || "未知卦";
   }, [state.lines]);
 
-  const handleInterpretation = async () => {
-    if (state.lines.length < 6 || interpretationInFlightRef.current) return;
-    if (!config.apiKey) {
-      alert('请先在设置中配置 API Key');
-      setShowApiSettingsModal(true);
-      return;
-    }
-
+  const beginInterpretation = () => {
     const requestId = ++interpretationRequestIdRef.current;
     interpretationInFlightRef.current = true;
     setState(prev => ({ ...prev, isLoadingAI: true }));
     // 动画只覆盖真实的解析过程，请求与动画同时开始。
     setShowCinematic(true);
+    return requestId;
+  };
+
+  const saveInterpretation = (requestId: number, result: string) => {
+    if (requestId !== interpretationRequestIdRef.current) return;
+
+    setState(prev => ({
+      ...prev,
+      interpretation: result || "解读失败",
+      isLoadingAI: false
+    }));
+    setHistory(prev => [{ name: mainHexName!, date: new Date().toLocaleString() }, ...prev.slice(0, 9)]);
+  };
+
+  const saveInterpretationError = (requestId: number, error: unknown) => {
+    if (requestId !== interpretationRequestIdRef.current) return;
+
+    console.error('Interpretation Error:', error);
+    setState(prev => ({
+      ...prev,
+      interpretation: "天机暂时不可泄露（解析出错），请静心稍后再试。",
+      isLoadingAI: false
+    }));
+  };
+
+  const finishInterpretation = (requestId: number) => {
+    if (requestId === interpretationRequestIdRef.current) {
+      interpretationInFlightRef.current = false;
+    }
+  };
+
+  /** 使用打包在应用内的知识库完成解析，不读取 API Key，也不发起网络请求。 */
+  const runLocalInterpretation = async (category: QuestionCategory) => {
+    if (state.lines.length < 6 || interpretationInFlightRef.current) return;
+
+    const requestId = beginInterpretation();
+    try {
+      // 先让浏览器绘制解析状态，再执行同步的本地知识查询。
+      await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
+      if (requestId !== interpretationRequestIdRef.current) return;
+
+      const result = interpretLocally({
+        mainCode: getHexCode(state.lines),
+        changedCode: changeHexName ? getHexCode(state.lines, true) : null,
+        changingLines: state.lines.flatMap((line, index) => line.isChanging ? [index + 1] : []),
+        category,
+        question: consultationQuestion
+      });
+      saveInterpretation(requestId, result);
+    } catch (error) {
+      saveInterpretationError(requestId, error);
+    } finally {
+      finishInterpretation(requestId);
+    }
+  };
+
+  const handleInterpretation = async () => {
+    if (state.lines.length < 6 || interpretationInFlightRef.current) return;
+
+    if (config.provider === 'local') {
+      const categoryDetection = detectQuestionCategory(consultationQuestion);
+      if (categoryDetection.status === 'needs-selection') {
+        setPendingCategories(categoryDetection.candidates);
+        return;
+      }
+      await runLocalInterpretation(categoryDetection.category);
+      return;
+    }
+
+    if (providerRequiresApiKey(config.provider) && !config.apiKey) {
+      alert('请先在设置中配置 API Key');
+      setShowApiSettingsModal(true);
+      return;
+    }
+
+    const requestId = beginInterpretation();
 
     const linesDesc = state.lines.map((l, i) => {
         const type = l.type == 'yang' ? '阳' : '阴';
@@ -128,28 +202,14 @@ const App: React.FC = () => {
 
     const customPrompt = consultationQuestion ? `用户的咨询问题：${consultationQuestion}` : '';
     try {
+      // 只有远程模式才加载 AI SDK，本地模式不会下载或执行相关代码。
+      const { interpretHexagram } = await import('./services/geminiService');
       const result = await interpretHexagram(mainHexName!, changeHexName, linesDesc, config.provider, customPrompt, config.apiKey);
-      if (requestId !== interpretationRequestIdRef.current) return;
-
-      setState(prev => ({
-        ...prev,
-        interpretation: result || "解读失败",
-        isLoadingAI: false
-      }));
-      setHistory(prev => [{ name: mainHexName!, date: new Date().toLocaleString() }, ...prev.slice(0, 9)]);
+      saveInterpretation(requestId, result || "解读失败");
     } catch (error) {
-      if (requestId !== interpretationRequestIdRef.current) return;
-
-      console.error('AI Interpretation Error:', error);
-      setState(prev => ({
-        ...prev,
-        interpretation: "天机暂时不可泄露（解析出错），请静心稍后再试。",
-        isLoadingAI: false
-      }));
+      saveInterpretationError(requestId, error);
     } finally {
-      if (requestId === interpretationRequestIdRef.current) {
-        interpretationInFlightRef.current = false;
-      }
+      finishInterpretation(requestId);
     }
   };
 
@@ -170,7 +230,7 @@ const App: React.FC = () => {
             setShowApiSettingsModal(true);
           }}
           className="absolute right-0 top-0 p-2 text-stone-500 hover:text-red-800 transition-colors"
-          title="API 设置"
+          title="解卦设置"
         >
           <Settings className="w-5 h-5" />
         </button>
@@ -289,7 +349,9 @@ const App: React.FC = () => {
                     className="w-full py-4 px-8 bg-gradient-to-r from-amber-700 to-amber-600 hover:from-amber-600 hover:to-amber-500 disabled:bg-stone-400 text-white rounded-full font-bold text-lg shadow-lg flex items-center justify-center gap-2 transition-all"
                   >
                     {state.isLoadingAI ? <RefreshCw className="w-5 h-5 animate-spin" /> : <Sparkles className="w-5 h-5" />}
-                    {state.isLoadingAI ? '大师正在推演天机...' : '请求大师解卦'}
+                    {state.isLoadingAI
+                      ? '正在推演卦象...'
+                      : config.provider === 'local' ? '使用本地知识库解卦' : '请求 AI 解卦'}
                   </button>
                 )}
               </div>
@@ -365,6 +427,9 @@ const App: React.FC = () => {
                   if (line.startsWith('**')) {
                       return <p key={i} className="my-3 font-bold text-amber-900 bg-amber-50 p-2 rounded">{line.replace(/\*\*/g, '')}</p>;
                   }
+                  if (line.startsWith('> ')) {
+                      return <blockquote key={i} className="my-4 border-l-4 border-amber-600 bg-stone-50 px-4 py-3 text-stone-700">{line.slice(2)}</blockquote>;
+                  }
                   return <p key={i} className="my-3 text-stone-700">{line}</p>;
               })}
             </div>
@@ -382,73 +447,31 @@ const App: React.FC = () => {
         </div>
       )}
 
-      {/* API Settings Modal */}
+      {/* 解卦方式设置 */}
       {showApiSettingsModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-2xl font-bold text-red-900">API 设置</h2>
-              <button 
-                onClick={() => setShowApiSettingsModal(false)}
-                className="text-stone-400 hover:text-stone-600"
-              >
-                <X className="w-6 h-6" />
-              </button>
-            </div>
+        <InterpretationSettingsModal
+          provider={tempProvider}
+          apiKey={tempApiKey}
+          onProviderChange={setTempProvider}
+          onApiKeyChange={setTempApiKey}
+          onClose={() => setShowApiSettingsModal(false)}
+          onSave={() => {
+            saveConfig({ provider: tempProvider, apiKey: tempApiKey });
+            setShowApiSettingsModal(false);
+          }}
+        />
+      )}
 
-            <div className="space-y-4">
-              {/* Provider Selection */}
-              <div>
-                <label className="text-sm font-bold text-stone-700 block mb-2">选择 AI Provider</label>
-                <div className="space-y-2">
-                  {(['gemini', 'glm', 'deepseek'] as const).map((p) => (
-                    <label key={p} className="flex items-center gap-2 cursor-pointer hover:bg-stone-50 p-2 rounded">
-                      <input 
-                        type="radio" 
-                        name="provider" 
-                        value={p} 
-                        checked={tempProvider === p}
-                        onChange={() => setTempProvider(p)}
-                        className="cursor-pointer"
-                      />
-                      <span className="capitalize font-medium text-stone-700">{p}</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-
-              {/* API Key Input */}
-              <div>
-                <label className="text-sm font-bold text-stone-700 block mb-2">API Key</label>
-                <input 
-                  type="password" 
-                  value={tempApiKey} 
-                  onChange={(e) => setTempApiKey(e.target.value)}
-                  placeholder="输入你的 API Key..."
-                  className="w-full p-3 rounded border border-stone-300 text-sm focus:outline-none focus:ring-2 focus:ring-red-800"
-                />
-              </div>
-
-              <p className="text-xs text-stone-500 bg-stone-50 p-3 rounded">
-                💡 所有配置保存在浏览器本地存储中。API 端点已内置，无需手动配置。
-              </p>
-
-              {/* Save Button */}
-              <button
-                onClick={() => {
-                  saveConfig({
-                    provider: tempProvider,
-                    apiKey: tempApiKey
-                  });
-                  setShowApiSettingsModal(false);
-                }}
-                className="w-full py-3 px-4 bg-red-900 text-white hover:bg-red-800 rounded-lg transition-all font-bold"
-              >
-                确定
-              </button>
-            </div>
-          </div>
-        </div>
+      {pendingCategories && (
+        <QuestionCategoryDialog
+          question={consultationQuestion}
+          candidates={pendingCategories}
+          onClose={() => setPendingCategories(null)}
+          onSelect={category => {
+            setPendingCategories(null);
+            void runLocalInterpretation(category);
+          }}
+        />
       )}
 
       {/* 解卦请求期间显示推演动画，请求完成后由组件平滑退出。 */}
