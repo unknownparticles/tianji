@@ -185,6 +185,7 @@ const CoinTossStage: React.FC<CoinTossStageProps> = ({
         .coin-result--yang { background: #8e2d25; }
         .coin-result--yin { background: #46413a; }
         .coin-storm-trail {
+          --trail-angle: -20deg;
           position: absolute;
           z-index: 2;
           width: min(68%, 290px);
@@ -194,11 +195,11 @@ const CoinTossStage: React.FC<CoinTossStageProps> = ({
           border-radius: 50%;
           opacity: 0;
           background: linear-gradient(90deg, transparent, rgba(247, 193, 87, 0.9), transparent);
-          transform: rotate(-20deg) scaleX(0.3);
+          transform: rotate(var(--trail-angle)) scaleX(0.3);
         }
         .coin-storm-trail--two {
+          --trail-angle: 18deg;
           top: 58%;
-          transform: rotate(18deg) scaleX(0.3);
         }
         .coin-storm-spark {
           position: absolute;
@@ -252,9 +253,9 @@ const CoinTossStage: React.FC<CoinTossStageProps> = ({
           to { transform: rotateY(var(--coin-turns)) rotateX(24deg); }
         }
         @keyframes coin-storm-trail {
-          0% { opacity: 0; transform: translateX(-26px) rotate(-20deg) scaleX(0.25); }
+          0% { opacity: 0; transform: translateX(-26px) rotate(var(--trail-angle)) scaleX(0.25); }
           45% { opacity: 1; }
-          100% { opacity: 0; transform: translateX(24px) rotate(-20deg) scaleX(1); }
+          100% { opacity: 0; transform: translateX(24px) rotate(var(--trail-angle)) scaleX(1); }
         }
         @keyframes coin-storm-spark {
           0% { opacity: 0; transform: translateY(18px) scale(0.4); }

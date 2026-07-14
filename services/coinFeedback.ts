@@ -43,7 +43,7 @@ function playMetallicTone(frequency: number, duration: number, volume: number, d
     oscillator.start(startsAt);
     oscillator.stop(startsAt + duration);
   } catch {
-    // Audio feedback is optional and must never block divination.
+    // 音效只是增强反馈，任何播放失败都不能阻断起卦。
   }
 }
 
@@ -64,6 +64,6 @@ export function playCoinLandingFeedback(muted: boolean): void {
   try {
     if (typeof navigator !== 'undefined') navigator.vibrate?.([18, 28, 35]);
   } catch {
-    // Vibration support varies by browser and is non-essential feedback.
+    // 浏览器可能不支持震动，失败时保持静默降级。
   }
 }

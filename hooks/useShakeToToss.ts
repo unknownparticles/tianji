@@ -5,7 +5,7 @@ import {
   type MotionSample
 } from '../services/shakeDetection';
 
-export type ShakeStatus = 'unsupported' | 'needs-permission' | 'enabled' | 'denied' | 'error';
+export type ShakeStatus = 'unsupported' | 'needs-permission' | 'requesting' | 'enabled' | 'denied' | 'error';
 
 interface MotionVectorLike {
   x: number | null;
@@ -75,6 +75,7 @@ export function useShakeToToss({ canToss, onShake }: UseShakeToTossOptions): Sha
   const [status, setStatus] = useState<ShakeStatus>('needs-permission');
   const [isPageVisible, setIsPageVisible] = useState(true);
   const onShakeRef = useRef(onShake);
+  const permissionInFlightRef = useRef(false);
 
   useEffect(() => {
     onShakeRef.current = onShake;
@@ -96,6 +97,7 @@ export function useShakeToToss({ canToss, onShake }: UseShakeToTossOptions): Sha
   }, []);
 
   const enable = useCallback(async () => {
+    if (permissionInFlightRef.current) return;
     if (typeof window === 'undefined' || !window.isSecureContext) {
       setStatus('unsupported');
       return;
@@ -106,7 +108,13 @@ export function useShakeToToss({ canToss, onShake }: UseShakeToTossOptions): Sha
       setStatus('unsupported');
       return;
     }
-    setStatus(await requestDeviceMotionPermission(constructor));
+    permissionInFlightRef.current = true;
+    setStatus('requesting');
+    try {
+      setStatus(await requestDeviceMotionPermission(constructor));
+    } finally {
+      permissionInFlightRef.current = false;
+    }
   }, []);
 
   useEffect(() => {

@@ -25,6 +25,7 @@ import { Sparkles, RefreshCw, ScrollText, CircleAlert, History, HelpCircle, Sett
 const SHAKE_STATUS_TEXT: Record<ShakeStatus, string> = {
   unsupported: '当前设备或浏览器不支持摇一摇',
   'needs-permission': '摇一摇尚未启用',
+  requesting: '正在请求传感器权限',
   enabled: '摇一摇已启用',
   denied: '传感器权限已拒绝',
   error: '摇一摇启用失败'
@@ -134,6 +135,27 @@ const App: React.FC = () => {
   };
 
   React.useEffect(() => () => cancelActiveToss(false), [cancelActiveToss]);
+
+  /** 页面进入后台时丢弃尚未落定的结果，避免计时器恢复后写入过期卦象。 */
+  const abortActiveToss = useCallback(() => {
+    if (!tossInFlightRef.current) return;
+
+    cancelActiveToss();
+    setCurrentBatchCoins([]);
+    setState(previous => previous.isRolling
+      ? { ...previous, isRolling: false, currentResult: null }
+      : previous
+    );
+  }, [cancelActiveToss]);
+
+  React.useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') abortActiveToss();
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [abortActiveToss]);
 
   const reset = () => {
     cancelActiveToss();
@@ -393,10 +415,15 @@ const App: React.FC = () => {
                     <button
                       type="button"
                       onClick={handleEnableShake}
-                      className="flex items-center gap-2 rounded-lg border border-stone-300 bg-white px-4 py-2 text-sm font-bold text-stone-700 transition-colors hover:border-red-800 hover:text-red-900"
+                      disabled={shakeStatus === 'requesting'}
+                      className="flex items-center gap-2 rounded-lg border border-stone-300 bg-white px-4 py-2 text-sm font-bold text-stone-700 transition-colors hover:border-red-800 hover:text-red-900 disabled:cursor-wait disabled:opacity-60"
                     >
                       <Vibrate className="h-4 w-4" />
-                      {shakeStatus === 'needs-permission' ? '启用摇一摇' : '重新启用摇一摇'}
+                      {shakeStatus === 'needs-permission'
+                        ? '启用摇一摇'
+                        : shakeStatus === 'requesting'
+                          ? '正在请求权限'
+                          : '重新启用摇一摇'}
                     </button>
                     {shakeStatus !== 'needs-permission' && (
                       <p className="text-xs text-red-700">{SHAKE_STATUS_TEXT[shakeStatus]}</p>
