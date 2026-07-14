@@ -31,49 +31,6 @@
         .shake {
             animation: shake 0.5s infinite;
         }
-
-        /* 硬币翻转动画 - 抛起跳出画框 */
-        @keyframes coinFlip {
-            0% {
-                transform: translateY(0) rotateY(0deg) scale(1);
-            }
-            15% {
-                transform: translateY(-20px) rotateY(180deg) scale(1.1);
-            }
-            40% {
-                transform: translateY(-150px) rotateY(540deg) scale(1);
-            }
-            60% {
-                transform: translateY(-200px) rotateY(900deg) scale(0.9);
-            }
-            75% {
-                transform: translateY(-120px) rotateY(1080deg) scale(1);
-            }
-            88% {
-                transform: translateY(-30px) rotateY(1260deg) scale(1.05);
-            }
-            95% {
-                transform: translateY(-10px) rotateY(1350deg) scale(1);
-            }
-            100% {
-                transform: translateY(0) rotateY(1440deg) scale(1);
-            }
-        }
-        .animate-coin-flip {
-            animation: coinFlip 1.5s cubic-bezier(0.2, 0.8, 0.3, 1) forwards;
-        }
-
-        /* 硬币落地弹跳 */
-        @keyframes coinLand {
-            0% { transform: translateY(0) scale(1); }
-            30% { transform: translateY(-12px) scale(1.05); }
-            50% { transform: translateY(0) scale(0.97); }
-            70% { transform: translateY(-5px) scale(1.02); }
-            100% { transform: translateY(0) scale(1); }
-        }
-        .animate-coin-land {
-            animation: coinLand 0.3s ease-out;
-        }
     </style>
 <script type="importmap">
 {
